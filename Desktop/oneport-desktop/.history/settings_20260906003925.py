@@ -43,17 +43,13 @@ def save(patch: dict) -> dict:
     return data
 
 
-# One source of truth for the model. Hardcoded — the managed proxy runs 2.5 Flash.
-GEMINI_MODEL = "gemini-2.5-flash"
-
-
 def ai_opts() -> tuple[str, str | None]:
     """(model, gemini_key-or-None) for the AI callers.
 
-    Model is HARDCODED to gemini-2.5-flash — the Settings dropdown no longer
-    changes it. gemini_key is ALWAYS None: every AI call goes through the OnePort
-    managed proxy, so the client holds no keys to leak."""
-    return GEMINI_MODEL, None
+    gemini_key is ALWAYS None — every AI call goes through the OnePort managed
+    proxy. No BYOK: the client holds no keys to leak."""
+    s = load()
+    return s.get("model") or "gemini-2.5-flash", None
 
 
 def anthropic_key() -> str:
