@@ -1167,32 +1167,12 @@ function showAttach(){ CURRENT=null; stopPoll(); stopTerm(); $("#attachView").st
   $("#topTitle").textContent="OnePort Studio"; $("#topCrumb").style.display="none"; $("#verdictChip").style.display="none";
   $("#verifyBtn").style.display="none"; $("#alertBell").style.display="none"; $("#alertInbox").style.display="none"; closeVerify();
   loadProjects(); setTimeout(()=>$("#attachPath").focus(),40); }
-async function attach(force){
-  const forceAttach = force === true;                 // button onclick passes an Event → treat only strict true as force
+async function attach(){
   const path=$("#attachPath").value.trim(); if(!path) return;
   $("#attachErr").textContent=""; const btn=$("#attachBtn"); btn.disabled=true; btn.textContent="…";
-  let r; try{ r=await jpost("/api/projects/create",{path, force: forceAttach}); }catch(e){ r={ok:false,error:"engine error"}; }
-  if(!r.ok && r.too_big){                              // over the size guideline — offer to override
-    btn.disabled=false; btn.textContent="Attach";
-    const err=$("#attachErr");
-    err.innerHTML = escapeHtml(r.error) +
-      ' <button id="attachAnyway" style="margin-left:8px;background:none;border:1px solid var(--border);'+
-      'color:var(--text-2);border-radius:6px;padding:3px 9px;cursor:pointer">Attach anyway</button>';
-    const ab=document.getElementById("attachAnyway"); if(ab) ab.onclick=()=>attach(true);
-    return;
-  }
-  if(!r.ok){ btn.disabled=false; btn.textContent="Attach"; $("#attachErr").textContent=r.error||"Could not attach."; return; }
-  const id=r.project.id; let p=r.project;
-  showAttachLoader();
-  const t0=Date.now(), MAXW=90000;                     // build runs in background; poll until context ready
-  while(!(p&&p.context_ready) && Date.now()-t0<MAXW){
-    await new Promise(res=>setTimeout(res,1500));
-    try{ p=await jget("/api/projects/get?id="+id); }catch(e){}
-  }
-  const el=Date.now()-t0; if(el<4000) await new Promise(res=>setTimeout(res,4000-el));
-  hideAttachLoader();
+  let r; try{ r=await jpost("/api/projects/create",{path}); }catch(e){ r={ok:false,error:"engine error"}; }
   btn.disabled=false; btn.textContent="Attach";
-  await loadProjects(); openProject(id);
+  if(r.ok){ await loadProjects(); openProject(r.project.id); } else { $("#attachErr").textContent=r.error||"Could not attach."; }
 }
 async function importRepo(){
   const url=$("#importUrl").value.trim();

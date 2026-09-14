@@ -728,7 +728,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, settings.save(dict(body or {})) and settings.public())
             return
 
-        if u.path == "/api/projects/create":
+                if u.path == "/api/projects/create":
             path = (body.get("path") or "").strip()
             base = (body.get("base") or "main").strip() or "main"
             if not path or not Path(path).is_dir():
