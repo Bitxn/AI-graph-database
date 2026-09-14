@@ -664,7 +664,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, content.encode("utf-8"), f"{ctype}; charset=utf-8")
             return
 
-        if u.path == "/api/console":
+                if u.path == "/api/console":
             acct = _account_payload()
             projs = projects.list_projects()
             runs = []

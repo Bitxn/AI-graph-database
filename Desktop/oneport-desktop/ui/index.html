@@ -726,6 +726,92 @@
   @keyframes offpulse{0%,100%{opacity:.3}50%{opacity:1}}
   #offDismiss{background:none;border:1px solid var(--border);color:var(--text-2);padding:5px 12px;border-radius:8px;font-size:12px}
   #offDismiss:hover{border-color:var(--text-3);color:var(--text)}
+  /* Full Audit panel */
+  .aud{position:fixed;inset:0;z-index:190;display:flex;align-items:center;justify-content:center;background:rgba(10,10,10,.9);backdrop-filter:blur(6px)}
+  .aud-card{width:min(680px,92vw);max-height:86vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px 22px;box-shadow:0 40px 90px rgba(0,0,0,.5)}
+  .aud-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .aud-head b{font-size:1.1rem;color:var(--text)} .aud-head span{font-family:var(--mono);font-size:.76rem;color:var(--pass)}
+  .aud-x{margin-left:auto;background:none;border:0;color:var(--text-3);font-size:1rem;cursor:pointer}
+  .aud-phase{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin:12px 0 6px}
+  .aud-row{display:flex;align-items:center;gap:10px;padding:7px 9px;border:1px solid var(--border-soft);border-radius:8px;margin-bottom:5px;background:var(--panel-2)}
+  .aud-ic{width:16px;text-align:center;font-family:var(--mono)}
+  .aud-row.running .aud-ic{display:inline-block;animation:audspin 1s linear infinite}
+  @keyframes audspin{to{transform:rotate(360deg)}}
+  .aud-row.pass .aud-ic,.aud-row.done .aud-ic{color:var(--pass)}
+  .aud-row.warn .aud-ic{color:var(--error)} .aud-row.block .aud-ic,.aud-row.error .aud-ic{color:var(--block)} .aud-row.skip .aud-ic{color:var(--text-3)}
+  .aud-t{font-size:.85rem;color:var(--text);flex:none;min-width:130px}
+  .aud-s{font-size:.76rem;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .aud-synth{margin-top:16px;padding:14px;background:var(--panel-2);border:1px solid var(--border-soft);border-radius:10px;font-size:.85rem;line-height:1.6;color:var(--text-2)}
+  .aud-synth h1,.aud-synth h2,.aud-synth h3{color:var(--text);font-size:.95rem;margin:8px 0 4px}
+  .aud-foot{display:flex;gap:8px;margin-top:16px}
+  .aud-open{flex:1;background:var(--pass);color:#10231a;border:0;border-radius:9px;padding:10px;font-weight:600;cursor:pointer}
+  .aud-done{background:var(--panel);border:1px solid var(--border);color:var(--text-2);border-radius:9px;padding:10px 16px;cursor:pointer}
+  /* settings extras */
+  .set-row em{display:block;font-style:normal;font-size:.72rem;color:var(--text-3);margin-top:2px}
+  .set-row.sub{margin-left:12px;padding-left:12px;border-left:2px solid var(--border-soft)}
+  .set-seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .set-seg button{background:transparent;border:0;color:var(--text-2);font-family:var(--sans);font-size:.8rem;padding:6px 13px;cursor:pointer;border-right:1px solid var(--border)}
+  .set-seg button:last-child{border-right:0}
+  .set-seg button.on{background:var(--accent-dim);color:var(--text)}
+  .set-field input{width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:var(--mono);font-size:.82rem;outline:none}
+  .set-field input:focus{border-color:var(--text-3)}
+  .set-links{display:flex;gap:16px;margin-top:6px}
+  .set-links a{color:var(--pass);font-size:.82rem;text-decoration:none}
+  .set-links a:hover{text-decoration:underline}
+  body.compact .set-card{padding:14px 16px}
+  body.compact{font-size:13px}
+
+  /* Light theme — palette override; the UI is variable-driven so this flips it */
+  :root[data-theme="light"]{
+    --bg:#fafafa; --sidebar:#f2f2f3; --panel:#ffffff; --panel-2:#f6f6f7;
+    --border:#e3e3e6; --border-soft:#ededf0;
+    --text:#1a1a1a; --text-2:#55555c; --text-3:#8b8b92;
+    --accent:#1a1a1a; --accent-dim:#eaeaee;
+    --pass:#2e7d43; --block:#c0392b; --error:#b07d13; --skip:#9a9a9a;
+  }
+  :root[data-theme="light"] body{background:var(--bg);color:var(--text)}
+
+  /* account chip → opens the console */
+  .acc-open{flex:1;display:flex;align-items:center;gap:10px;min-width:0;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+  .acc-open:hover .email{color:var(--text)}
+  .acc-open:hover{opacity:.92}
+
+  /* Console view */
+  #consoleView.wide{max-width:1040px}
+  .cv-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .cv-title{font-size:1.15rem;font-weight:600;color:var(--text)}
+  .cv-nav{display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:2px;margin-left:6px}
+  .cv-tab{background:none;border:0;color:var(--text-2);font-family:var(--sans);font-size:.82rem;padding:6px 13px;border-radius:6px;cursor:pointer}
+  .cv-tab:hover{color:var(--text)}
+  .cv-tab.on{background:var(--panel-2);color:var(--text)}
+  #cvRefresh{margin-left:auto}
+  .cv-loading{color:var(--text-3);font-size:.9rem;padding:40px;text-align:center}
+  .cv-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .cv-kpi{background:var(--panel);border:1px solid var(--border-soft);border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:3px}
+  .cv-kpi .k{font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+  .cv-kpi .v{font-size:1.45rem;font-weight:600;color:var(--text);line-height:1}
+  .cv-kpi .v.acc{color:var(--pass)} .cv-kpi .v.bad{color:var(--block)} .cv-kpi .v.warn{color:var(--error)}
+  .cv-kpi .s{font-size:.7rem;color:var(--text-3)}
+  .cv-panel{background:var(--panel);border:1px solid var(--border-soft);border-radius:12px;padding:15px 16px;margin-bottom:12px}
+  .cv-panel h3{font-size:.92rem;color:var(--text);margin-bottom:12px;font-weight:600}
+  .cv-table{width:100%;border-collapse:collapse;font-size:.8rem}
+  .cv-table th{text-align:left;font-family:var(--mono);font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);padding:0 8px 8px;border-bottom:1px solid var(--border-soft)}
+  .cv-table td{padding:8px;border-bottom:1px solid var(--border-soft);color:var(--text-2)}
+  .cv-table tr:last-child td{border-bottom:0}
+  .cv-vd{font-family:var(--mono);font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:5px}
+  .cv-vd.READY{color:var(--pass);background:rgba(143,191,152,.13)} .cv-vd.BLOCKED{color:var(--block);background:rgba(224,141,141,.13)} .cv-vd.INCONCLUSIVE{color:var(--error);background:rgba(224,192,141,.13)}
+  .cv-bars{display:flex;flex-direction:column;gap:9px}
+  .cv-bar{display:flex;align-items:center;gap:10px}
+  .cv-bar .lbl{font-size:.8rem;color:var(--text-2);width:150px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cv-bar .trk{flex:1;height:6px;background:var(--panel-2);border-radius:5px;overflow:hidden}
+  .cv-bar .fil{height:100%;background:var(--pass);border-radius:5px}
+  .cv-bar .val{font-family:var(--mono);font-size:.72rem;color:var(--text-2);width:64px;text-align:right}
+  .cv-acct-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:.86rem;color:var(--text-2)}
+  .cv-acct-row:last-child{border-bottom:0} .cv-acct-row b{color:var(--text)}
+  .cv-actions{display:flex;gap:8px;margin-top:14px}
+  .cv-big{font-size:2.2rem;font-weight:700;color:var(--pass);line-height:1}
+  .cv-empty{color:var(--text-3);font-size:.84rem;padding:18px;text-align:center}
+  @media(max-width:760px){.cv-kpis{grid-template-columns:repeat(2,1fr)}}
 </style>
 
 <!-- ══════════════ LOGIN ══════════════ -->
@@ -769,9 +855,11 @@
         </a>
       </div>
       <div class="account">
-        <div class="avatar"><svg class="logo" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="12"
-             stroke-linecap="round" stroke-linejoin="round"><polyline points="72,37 65,25 35,25 21,50 35,75 65,75 72,63"/></svg></div>
-        <div class="acc-meta"><div class="email" id="accEmail">—</div><div class="sub" id="accSub">—</div></div>
+        <button class="acc-open" id="accChip" title="Open console">
+          <div class="avatar"><svg class="logo" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="12"
+               stroke-linecap="round" stroke-linejoin="round"><polyline points="72,37 65,25 35,25 21,50 35,75 65,75 72,63"/></svg></div>
+          <div class="acc-meta"><div class="email" id="accEmail">—</div><div class="sub" id="accSub">—</div></div>
+        </button>
         <button class="icon-btn" id="logoutBtn" title="Log out">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 17l5-5-5-5M21 12H9M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h4"/></svg>
         </button>
@@ -868,25 +956,90 @@
             </div>
           </section>
           <section class="set-card">
-            <div class="set-h">AI engine</div>
-            <div class="set-field"><label>Model</label>
-              <select id="setModel">
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash (fast, default)</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro (deeper)</option>
-              </select></div>
-            <div class="set-note">AI is built in — the mind-map, chat &amp; fix-bundles run on OnePort's managed engine. No API keys to set up, nothing to paste.</div>
+            <div class="set-h">Appearance</div>
+            <div class="set-row"><span>Theme</span>
+              <div class="set-seg" id="setTheme">
+                <button data-theme-val="dark">Dark</button>
+                <button data-theme-val="light">Light</button>
+                <button data-theme-val="system">System</button>
+              </div></div>
+            <div class="set-row"><span>Compact layout<em>Tighter spacing &amp; smaller text</em></span>
+              <button class="cs-switch" id="setCompact"><span class="sw"></span></button></div>
           </section>
+
           <section class="set-card">
-            <div class="set-h">Defaults</div>
-            <div class="set-row"><span>Watch a project as soon as it's opened</span>
+            <div class="set-h">Preferences</div>
+            <div class="set-row"><span>Watch a project as soon as it's opened<em>Re-scan automatically on every edit</em></span>
               <button class="cs-switch" id="setWatchDef"><span class="sw"></span></button></div>
             <div class="set-row"><span>Include AI gates in a scan by default</span>
               <button class="cs-switch" id="setAiDef"><span class="sw"></span></button></div>
+            <div class="set-row"><span>Build codebase context on attach<em>The mind-map, so OnePort understands the repo</em></span>
+              <button class="cs-switch" id="setAutoCtx"><span class="sw"></span></button></div>
+            <div class="set-field"><label>Default base branch</label>
+              <input id="setBase" spellcheck="false" placeholder="main"></div>
+          </section>
+
+          <section class="set-card">
+            <div class="set-h">Verification &amp; alerts</div>
+            <div class="set-row"><span>Auto-verify on change<em>Re-check the code against your saved intent</em></span>
+              <button class="cs-switch" id="setAutoVerify"><span class="sw"></span></button></div>
+            <div class="set-row"><span>Desktop notifications</span>
+              <button class="cs-switch" id="setNotif"><span class="sw"></span></button></div>
+            <div class="set-row sub"><span>Notify on blockers</span>
+              <button class="cs-switch" id="setNotifBlockers"><span class="sw"></span></button></div>
+            <div class="set-row sub"><span>Notify on intent drift</span>
+              <button class="cs-switch" id="setNotifDrift"><span class="sw"></span></button></div>
+          </section>
+
+          <section class="set-card">
+            <div class="set-h">Full Audit</div>
+            <div class="set-row"><span>Skip slow doc generators<em>Faster, cheaper audit &mdash; skips context &amp; docgen</em></span>
+              <button class="cs-switch" id="setAuditSkipDocs"><span class="sw"></span></button></div>
+          </section>
+
+          <section class="set-card">
+            <div class="set-h">AI engine</div>
+            <div class="set-row"><span>Model</span><b>Managed &middot; Gemini 2.5 Flash</b></div>
+            <div class="set-note">AI runs on OnePort's managed engine &mdash; no API keys to set up, nothing to paste, nothing to leak. Your code never leaves your machine; only the minimal context a check needs is ever sent.</div>
+          </section>
+
+          <section class="set-card">
+            <div class="set-h">Privacy &amp; data</div>
+            <div class="set-row"><span>Anonymous usage analytics<em>Helps improve OnePort &mdash; never your code</em></span>
+              <button class="cs-switch" id="setTelemetry"><span class="sw"></span></button></div>
+            <div class="set-actions">
+              <button class="btn" id="setClearCache">Clear cached data</button>
+              <button class="btn" id="setReset">Reset settings</button>
+            </div>
+            <div class="set-note">&ldquo;Clear cached data&rdquo; removes the local mind-map &amp; verification caches (rebuilt on next use). Your projects &amp; history stay.</div>
+          </section>
+
+          <section class="set-card">
+            <div class="set-h">About</div>
+            <div class="set-row"><span>Version</span><b id="setVersion">OnePort Desktop</b></div>
+            <div class="set-links">
+              <a href="https://www.oneport.co.in/docs" target="_blank" rel="noopener">Docs</a>
+              <a href="https://github.com/Bitxn/Oneport-Desktop/releases" target="_blank" rel="noopener">Changelog</a>
+              <a href="https://www.oneport.co.in/pricing" target="_blank" rel="noopener">Pricing</a>
+            </div>
           </section>
         </div>
 
         <!-- project view -->
+        <!-- console view (opened from the bottom-left account chip) -->
+        <div class="content-inner wide" id="consoleView" style="display:none">
+          <div class="cv-head">
+            <div class="cv-title">Console</div>
+            <div class="cv-nav">
+              <button class="cv-tab on" data-cv="overview">Overview</button>
+              <button class="cv-tab" data-cv="usage">Usage</button>
+              <button class="cv-tab" data-cv="account">Account</button>
+            </div>
+            <button class="btn" id="cvRefresh" title="Refresh">↻ Refresh</button>
+          </div>
+          <div id="cvBody"></div>
+        </div>
+
         <div class="content-inner" id="projectView" style="display:none">
           <div class="proj-head">
             <div class="watch-toggle" id="watchToggle"><span class="sw"></span><span id="watchLabel">Watch off</span></div>
@@ -899,6 +1052,10 @@
             <button class="btn prod" id="prodBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
               Test for Production
+            </button>
+            <button class="btn" id="auditBtn" title="Run every tool, then generate a full report">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v4H4zM4 10h16v4H4zM4 16h10v4H4z"/></svg>
+              Full Audit
             </button>
           </div>
 
@@ -1076,6 +1233,7 @@
   </div>
 </div>
 
+<div id="auditPanel" class="aud" style="display:none"><div class="aud-card"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1134,6 +1292,7 @@ async function enterApp(acc){
   $("#accSub").textContent=(acc.tier||"free")+(bal?" · "+bal:""); $("#tierTag").textContent=acc.tier||"free";
   $("#navUpgrade").href=BUY_URL;
   try{ GATE_REG=(await jget("/api/status")).gates||[]; }catch(e){ GATE_REG=[]; }
+  try{ PREFS=await jget("/api/settings"); applyTheme(PREFS.theme||"system"); applyCompact(PREFS.compact); }catch(e){}
   loadRulebook();
   await loadProjects();
 }
@@ -1164,7 +1323,7 @@ async function loadProjects(){
 }
 function showAttach(){ CURRENT=null; stopPoll(); stopTerm(); $("#attachView").style.display="block"; $("#projectView").style.display="none";
   $("#settingsView").style.display="none"; $("#navSettings").classList.remove("active");
-  $("#topTitle").textContent="OnePort Studio"; $("#topCrumb").style.display="none"; $("#verdictChip").style.display="none";
+  $("#topTitle").textContent="OnePort Studio"; $("#topCrumb").style.display="none"; $("#verdictChip").style.display="none"; $("#consoleView").style.display="none";
   $("#verifyBtn").style.display="none"; $("#alertBell").style.display="none"; $("#alertInbox").style.display="none"; closeVerify();
   loadProjects(); setTimeout(()=>$("#attachPath").focus(),40); }
 async function attach(force){
@@ -1208,7 +1367,7 @@ async function openProject(id){
   CURRENT=p; stopPoll();
   $("#attachView").style.display="none"; $("#projectView").style.display="block";
   $("#settingsView").style.display="none"; $("#navSettings").classList.remove("active");
-  $("#topTitle").textContent=p.name; $("#topCrumb").style.display="inline"; $("#topCrumb").textContent=p.path;
+  $("#topTitle").textContent=p.name; $("#topCrumb").style.display="inline"; $("#topCrumb").textContent=p.path; $("#consoleView").style.display="none";
   $("#verifyBtn").style.display="inline-flex"; $("#alertBell").style.display="inline-flex"; closeVerify();
   (p.alerts||[]).forEach(a=>NOTIFIED.add(alertKey(a)));   // seed: don't re-notify pre-existing alerts on open
   syncAlerts(p);                                          // show the badge for any that exist
@@ -1617,6 +1776,9 @@ function syncAlerts(p){
 }
 function fireNotification(a){
   try{
+    if(PREFS.notifications===false) return;                          // desktop notifications off
+    if(a.kind==="gate" && PREFS.notify_blockers===false) return;     // muted: blockers
+    if(a.kind==="verify" && PREFS.notify_drift===false) return;      // muted: intent drift
     if(!("Notification" in window)) return;
     if(Notification.permission==="granted"){
       const n=new Notification("OnePort — "+a.title, { body:(a.detail||"").slice(0,140), tag:alertKey(a) });
@@ -2086,23 +2248,109 @@ async function fixWithAI(gateId){
 }
 
 // ── settings ─────────────────────────────────────────────────
-let SET={};
+let SET={}, PREFS={};
+function applyTheme(t){
+  const root=document.documentElement;
+  let mode=t||"system";
+  if(mode==="system"){ mode=(window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark"; }
+  if(mode==="light") root.setAttribute("data-theme","light"); else root.removeAttribute("data-theme");
+  try{ localStorage.setItem("op_theme", t||"system"); }catch(e){}
+}
+function applyCompact(on){ document.body.classList.toggle("compact",!!on); try{ localStorage.setItem("op_compact",on?"1":"0"); }catch(e){} }
+// Apply the saved look instantly (before any settings fetch) so there's no flash.
+(function(){ try{ applyTheme(localStorage.getItem("op_theme")||"system"); applyCompact(localStorage.getItem("op_compact")==="1"); }catch(e){} })();
+
+let SET_TOG=(id,val)=>{ const el=$(id); if(el) el.classList.toggle("on",!!val); };
 async function showSettings(){
   stopPoll(); stopTerm();
   $("#attachView").style.display="none"; $("#projectView").style.display="none";
   $("#settingsView").style.display="block"; $("#navSettings").classList.add("active");
-  $("#topTitle").textContent="Settings"; $("#topCrumb").style.display="none"; $("#verdictChip").style.display="none";
+  $("#topTitle").textContent="Settings"; $("#topCrumb").style.display="none"; $("#verdictChip").style.display="none"; $("#consoleView").style.display="none";
   $("#verifyBtn").style.display="none"; $("#alertBell").style.display="none"; $("#alertInbox").style.display="none"; closeVerify();
-  try{ SET=await jget("/api/settings"); }catch(e){ SET={}; }
+  try{ SET=await jget("/api/settings"); PREFS=SET; }catch(e){ SET={}; }
   $("#setEmail").textContent=ACCOUNT.email||"—";
   $("#setTier").textContent=ACCOUNT.tier||"free";
   $("#setTokens").textContent=(ACCOUNT.balance!=null)?Number(ACCOUNT.balance).toLocaleString():"—";
-  $("#setModel").value=SET.model||"gemini-2.5-flash";
-  $("#setWatchDef").classList.toggle("on",!!SET.watch_default);
-  $("#setAiDef").classList.toggle("on",!!SET.ai_default);
   $("#setUpgrade").href=BUY_URL;
+  const th=SET.theme||"system";
+  document.querySelectorAll('#setTheme button').forEach(b=>b.classList.toggle("on",b.dataset.themeVal===th));
+  applyTheme(th); applyCompact(SET.compact);
+  SET_TOG("#setCompact",SET.compact);
+  SET_TOG("#setWatchDef",SET.watch_default);
+  SET_TOG("#setAiDef",SET.ai_default);
+  SET_TOG("#setAutoCtx",SET.auto_context);
+  SET_TOG("#setAutoVerify",SET.auto_verify);
+  SET_TOG("#setNotif",SET.notifications);
+  SET_TOG("#setNotifBlockers",SET.notify_blockers);
+  SET_TOG("#setNotifDrift",SET.notify_drift);
+  SET_TOG("#setAuditSkipDocs",SET.audit_skip_docs);
+  SET_TOG("#setTelemetry",SET.telemetry);
+  const bi=$("#setBase"); if(bi) bi.value=SET.base_default||"main";
 }
-async function saveSet(patch){ try{ SET=await jpost("/api/settings",patch); }catch(e){} }
+async function saveSet(patch){ try{ SET=await jpost("/api/settings",patch); PREFS=SET; }catch(e){} }
+
+// ── Console (opened from the bottom-left account chip) ───────────────────────
+let CONSOLE=null, CV_VIEW="overview";
+function cvFmt(n){ if(n==null) return "—"; n=Number(n)||0; return n>=100000?(n/1000).toFixed(0)+"k":n.toLocaleString(); }
+function cvKpi(k,v,sub,cls){ return '<div class="cv-kpi"><span class="k">'+k+'</span><span class="v '+(cls||"")+'">'+v+'</span><span class="s">'+(sub||"")+'</span></div>'; }
+async function openConsole(){
+  stopPoll(); stopTerm();
+  $("#attachView").style.display="none"; $("#projectView").style.display="none"; $("#settingsView").style.display="none";
+  $("#consoleView").style.display="block"; $("#navSettings").classList.remove("active");
+  $("#topTitle").textContent="Console"; $("#topCrumb").style.display="none"; $("#verdictChip").style.display="none";
+  $("#verifyBtn").style.display="none"; $("#alertBell").style.display="none"; $("#alertInbox").style.display="none"; closeVerify();
+  $("#cvBody").innerHTML='<div class="cv-loading">Loading your console…</div>';
+  try{ CONSOLE=await jget("/api/console"); }catch(e){ CONSOLE=null; }
+  renderConsole();
+}
+function renderConsole(){
+  document.querySelectorAll('.cv-tab').forEach(b=>b.classList.toggle('on',b.dataset.cv===CV_VIEW));
+  const d=CONSOLE||{}, a=d.account||{}, s=d.stats||{};
+  const body=$("#cvBody");
+  if(!CONSOLE){ body.innerHTML='<div class="cv-empty">Couldn\'t load the console — is the engine running?</div>'; return; }
+  body.innerHTML = CV_VIEW==="usage" ? cvUsage(d,a,s) : CV_VIEW==="account" ? cvAccount(d,a) : cvOverview(d,a,s);
+  const buy=$("#cvBuy"); if(buy) buy.onclick=()=>window.open(d.buy_url||BUY_URL,"_blank");
+  const lo=$("#cvLogout"); if(lo) lo.onclick=doLogout;
+}
+function cvSpendBars(d){
+  const bp=(d.by_project||[]).filter(x=>x.tokens>0);
+  if(!bp.length) return '<div class="cv-empty">No AI spend yet — run Test for Production or a Full Audit.</div>';
+  const max=Math.max(1,...bp.map(x=>x.tokens||0));
+  return '<div class="cv-bars">'+bp.map(x=>'<div class="cv-bar"><span class="lbl">'+escapeHtml(x.project||"—")+'</span><span class="trk"><span class="fil" style="width:'+Math.round((x.tokens||0)/max*100)+'%"></span></span><span class="val">'+cvFmt(x.tokens)+'</span></div>').join('')+'</div>';
+}
+function cvOverview(d,a,s){
+  const recent=(d.recent||[]).slice(0,8);
+  const rows = recent.length ? recent.map(r=>'<tr><td>'+escapeHtml(r.project||"—")+'</td><td><span class="cv-vd '+(r.verdict||'')+'">'+(r.verdict||'—')+'</span></td><td>'+(r.gates_failed??0)+'</td><td>'+cvFmt(r.tokens||0)+'</td><td>'+ago(r.ts)+'</td></tr>').join('')
+    : '<tr><td colspan="5" class="cv-empty">No scans yet — run a Quick scan on a project.</td></tr>';
+  return cvKpisRow(a,s,d)
+    +'<div class="cv-panel"><h3>Recent ship runs</h3><table class="cv-table"><thead><tr><th>Project</th><th>Verdict</th><th>Failed</th><th>Tokens</th><th>When</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div class="cv-panel"><h3>Token spend by project</h3>'+cvSpendBars(d)+'</div>';
+}
+function cvKpisRow(a,s,d){
+  const pr=s.pass_rate||0;
+  return '<div class="cv-kpis">'
+    +cvKpi("Tokens left",cvFmt(a.balance),(a.tier||"free")+" plan","acc")
+    +cvKpi("Ship runs",s.runs||0,(d.projects||0)+" projects","")
+    +cvKpi("Pass rate",pr+"%",(s.ready||0)+" ready · "+(s.blocked||0)+" blocked",(pr>=80?"acc":pr>=50?"warn":"bad"))
+    +cvKpi("Blocked",s.blocked||0,"stopped pre-ship",(s.blocked?"bad":""))
+    +'</div>';
+}
+function cvUsage(d,a,s){
+  return '<div class="cv-panel"><h3>Token balance</h3><div class="cv-big">'+cvFmt(a.balance)+'</div>'
+    +'<p class="cv-empty" style="text-align:left;padding:8px 0 0">'+(a.tier||"free")+' plan · '+cvFmt(s.tokens_used)+' tokens metered across your local runs.</p>'
+    +'<div class="cv-actions"><button class="btn prod" id="cvBuy">Buy tokens</button></div></div>'
+    +'<div class="cv-panel"><h3>Spend by project</h3>'+cvSpendBars(d)+'</div>';
+}
+function cvAccount(d,a){
+  return '<div class="cv-panel"><h3>Account</h3>'
+    +'<div class="cv-acct-row"><span>Signed in as</span><b>'+escapeHtml(a.email||"—")+'</b></div>'
+    +'<div class="cv-acct-row"><span>Plan</span><b>'+escapeHtml(a.tier||"free")+'</b></div>'
+    +'<div class="cv-acct-row"><span>Tokens remaining</span><b>'+cvFmt(a.balance)+'</b></div>'
+    +'<div class="cv-actions"><button class="btn prod" id="cvBuy">Buy tokens</button><button class="btn" id="cvLogout">Log out</button></div></div>';
+}
+$("#accChip").onclick=openConsole;
+$("#cvRefresh").onclick=openConsole;
+document.querySelectorAll('.cv-tab').forEach(b=>b.onclick=()=>{ CV_VIEW=b.dataset.cv; renderConsole(); });
 
 // ── terminal ─────────────────────────────────────────────────
 let TERM_SEQ=0, TERM_POLL=null, TERM_HIST=[], TERM_HI=-1;
@@ -2149,6 +2397,44 @@ document.querySelectorAll('.prov').forEach(b=>b.onclick=()=>{
 });
 $("#quickBtn").onclick=()=>scan("quick");
 $("#prodBtn").onclick=()=>scan("production");
+$("#auditBtn").onclick=startAudit;
+let AUDIT_POLL=null;
+async function startAudit(){
+  if(!CURRENT) return;
+  const r=await jpost("/api/projects/audit",{id:CURRENT.id});
+  if(!r.ok){ toast(r.error||"Could not start audit"); return; }
+  $("#auditPanel").style.display="flex";
+  clearInterval(AUDIT_POLL); AUDIT_POLL=setInterval(pollAudit,1200); pollAudit();
+}
+function closeAudit(){ clearInterval(AUDIT_POLL); AUDIT_POLL=null; $("#auditPanel").style.display="none"; }
+async function pollAudit(){
+  if(!CURRENT) return;
+  let p; try{ p=await jget("/api/projects/audit/progress?id="+CURRENT.id); }catch(e){ return; }
+  renderAudit(p);
+  if(p.status==="done"||p.status==="error"){ clearInterval(AUDIT_POLL); AUDIT_POLL=null; }
+}
+function renderAudit(p){
+  const tools=p.tools||[];
+  const ICON={pending:"·",running:"◌",pass:"✓",done:"✓",warn:"!",block:"✕",error:"!",skip:"–"};
+  const phases=[["checks","Checks"],["synthesis","AI synthesis"],["report","Report"],["governance","Needs input"]];
+  let h='<div class="aud-head"><b>Full Audit</b><span>'+(p.status==="done"?("Verdict: "+(p.verdict||"")):(p.phase?("Phase: "+p.phase):"running…"))+'</span><button class="aud-x" onclick="closeAudit()">✕</button></div><div class="aud-body">';
+  for(const [ph,label] of phases){
+    const list=tools.filter(t=>t.phase===ph); if(!list.length) continue;
+    h+='<div class="aud-phase">'+label+'</div>';
+    for(const t of list){
+      h+='<div class="aud-row '+t.status+'"><span class="aud-ic">'+(ICON[t.status]||"·")+'</span><span class="aud-t">'+escapeHtml(t.title)+'</span><span class="aud-s">'+escapeHtml(t.summary||"")+'</span></div>';
+    }
+  }
+  h+='</div>';
+  if(p.summary_md){ h+='<div class="aud-synth">'+mdToHtml(p.summary_md)+'</div>'; }
+  if(p.status==="done"){
+    h+='<div class="aud-foot">';
+    if(p.report_aid){ h+='<button class="aud-open" onclick="openAuditReport()">Open full report</button>'; }
+    h+='<button class="aud-done" onclick="closeAudit()">Done</button></div>';
+  }
+  $("#auditPanel .aud-card").innerHTML=h;
+}
+function openAuditReport(){ closeAudit(); switchTab('reports'); if(typeof loadArtifacts==='function') loadArtifacts(); toast("Report is in the Reports tab"); }
 $("#verifyBtn").onclick=openVerify;
 $("#vpBack").onclick=closeVerify;
 $("#vpDraft").onclick=verifyDraft;
@@ -2173,9 +2459,25 @@ $("#guardToggle").onclick=toggleGuard;
 $("#gmClose").onclick=closeGateModal;
 $("#gateModal").addEventListener("click",e=>{ if(e.target.id==="gateModal") closeGateModal(); });
 $("#navSettings").onclick=showSettings;
-$("#setModel").onchange=e=>saveSet({model:e.target.value});
-$("#setWatchDef").onclick=()=>{ const on=!$("#setWatchDef").classList.contains("on"); $("#setWatchDef").classList.toggle("on",on); saveSet({watch_default:on}); };
-$("#setAiDef").onclick=()=>{ const on=!$("#setAiDef").classList.contains("on"); $("#setAiDef").classList.toggle("on",on); saveSet({ai_default:on}); };
+function wireToggle(id,key,after){ const el=$(id); if(!el) return; el.onclick=()=>{ const on=!el.classList.contains("on"); el.classList.toggle("on",on); saveSet({[key]:on}); if(after) after(on); }; }
+wireToggle("#setWatchDef","watch_default");
+wireToggle("#setAiDef","ai_default");
+wireToggle("#setAutoCtx","auto_context");
+wireToggle("#setAutoVerify","auto_verify");
+wireToggle("#setNotif","notifications",(on)=>{ if(on && ("Notification" in window) && Notification.permission==="default") Notification.requestPermission(); });
+wireToggle("#setNotifBlockers","notify_blockers");
+wireToggle("#setNotifDrift","notify_drift");
+wireToggle("#setAuditSkipDocs","audit_skip_docs");
+wireToggle("#setTelemetry","telemetry");
+wireToggle("#setCompact","compact",applyCompact);
+document.querySelectorAll('#setTheme button').forEach(b=>b.onclick=()=>{
+  const v=b.dataset.themeVal;
+  document.querySelectorAll('#setTheme button').forEach(x=>x.classList.toggle("on",x===b));
+  applyTheme(v); saveSet({theme:v});
+});
+{ const bi=$("#setBase"); if(bi) bi.onchange=e=>saveSet({base_default:(e.target.value||"main").trim()||"main"}); }
+{ const cc=$("#setClearCache"); if(cc) cc.onclick=async()=>{ cc.disabled=true; cc.textContent="Clearing…"; try{ const r=await jpost("/api/settings/clear-cache",{}); toast("Cache cleared"+(r&&r.removed&&r.removed.length?": "+r.removed.join(", "):"")); }catch(e){ toast("Couldn't clear cache"); } cc.disabled=false; cc.textContent="Clear cached data"; }; }
+{ const rs=$("#setReset"); if(rs) rs.onclick=async()=>{ SET=await jpost("/api/settings",{theme:"system",compact:false,watch_default:false,ai_default:false,auto_context:true,auto_verify:true,notifications:true,notify_blockers:true,notify_drift:true,audit_skip_docs:false,telemetry:true,base_default:"main"}); PREFS=SET; applyTheme("system"); applyCompact(false); showSettings(); toast("Settings reset to defaults"); }; }
 $("#setLogout").onclick=doLogout;
 $("#termClear").onclick=()=>termExec("cls");
 $("#termInput").addEventListener("keydown",e=>{

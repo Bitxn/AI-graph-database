@@ -664,47 +664,6 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, content.encode("utf-8"), f"{ctype}; charset=utf-8")
             return
 
-        if u.path == "/api/console":
-            acct = _account_payload()
-            projs = projects.list_projects()
-            runs = []
-            for p in projs:
-                for h in (p.get("history") or []):
-                    sm = h.get("summary") or {}
-                    runs.append({
-                        "project": p.get("name"),
-                        "verdict": h.get("verdict"),
-                        "mode": h.get("mode"),
-                        "gates_failed": int(sm.get("block", 0)) + int(sm.get("error", 0)),
-                        "gates_passed": int(sm.get("pass", 0)),
-                        "warnings": int(sm.get("warn", 0)),
-                        "tokens": int(h.get("tokens") or 0),
-                        "ts": h.get("ts"),
-                    })
-            runs.sort(key=lambda r: r.get("ts") or "", reverse=True)
-            total = len(runs)
-            ready = sum(1 for r in runs if r["verdict"] == "READY")
-            blocked = sum(1 for r in runs if r["verdict"] == "BLOCKED")
-            inconclusive = sum(1 for r in runs if r["verdict"] == "INCONCLUSIVE")
-            by = {}
-            for r in runs:
-                by[r["project"]] = by.get(r["project"], 0) + r["tokens"]
-            by_project = sorted(({"project": k, "tokens": v} for k, v in by.items()),
-                                key=lambda x: -x["tokens"])
-            self._send(200, {
-                "account": {"email": acct.get("email", ""), "tier": acct.get("tier", "free"),
-                            "balance": acct.get("balance"), "logged_in": acct.get("logged_in", False)},
-                "projects": len(projs),
-                "stats": {"runs": total, "ready": ready, "blocked": blocked,
-                          "inconclusive": inconclusive,
-                          "pass_rate": round(ready / total * 100) if total else 0,
-                          "tokens_used": sum(r["tokens"] for r in runs)},
-                "recent": runs[:12],
-                "by_project": by_project[:8],
-                "buy_url": acct.get("buy_url", _BUY_URL),
-            })
-            return
-
         if u.path == "/api/status":
             self._send(200, {
                 "logged_in": logged_in(),
