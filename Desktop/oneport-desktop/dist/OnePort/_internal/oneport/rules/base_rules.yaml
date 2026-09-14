@@ -1,0 +1,187 @@
+rules:
+
+  # ── Security ────────────────────────────────────────────────────────────────
+
+  - id: OPR001
+    description: SQL injection via string concatenation or format strings
+    category: security
+    severity: critical
+    rationale: Directly inserting user input into SQL queries allows attackers to manipulate queries.
+    docs_url: https://docs.oneport.dev/rules/OPR001
+
+  - id: OPR002
+    description: Hardcoded secret or credential in source code
+    category: security
+    severity: critical
+    rationale: Secrets committed to source code are exposed to anyone with repo access and git history.
+    docs_url: https://docs.oneport.dev/rules/OPR002
+
+  - id: OPR003
+    description: Insecure deserialization (pickle, yaml.load without Loader)
+    category: security
+    severity: critical
+    rationale: Deserialising untrusted data can allow arbitrary code execution.
+    docs_url: https://docs.oneport.dev/rules/OPR003
+
+  - id: OPR004
+    description: Server-Side Request Forgery (SSRF) — unvalidated URL from user input
+    category: security
+    severity: critical
+    docs_url: https://docs.oneport.dev/rules/OPR004
+
+  - id: OPR005
+    description: Path traversal — user-controlled file path without sanitisation
+    category: security
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR005
+
+  - id: OPR006
+    description: Missing authentication or authorisation check
+    category: security
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR006
+
+  - id: OPR007
+    description: Logging sensitive data (passwords, tokens, PII)
+    category: security
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR007
+
+  - id: OPR008
+    description: Use of MD5 or SHA-1 for password hashing
+    category: security
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR008
+
+  - id: OPR009
+    description: Disabled SSL/TLS certificate verification
+    category: security
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR009
+
+  - id: OPR010
+    description: Command injection via shell=True with user-controlled input
+    category: security
+    severity: critical
+    docs_url: https://docs.oneport.dev/rules/OPR010
+
+  # ── Performance ─────────────────────────────────────────────────────────────
+
+  - id: OPR020
+    description: N+1 query — database query inside a loop
+    category: performance
+    severity: error
+    rationale: Each loop iteration triggers a separate DB roundtrip; use bulk queries or eager loading.
+    docs_url: https://docs.oneport.dev/rules/OPR020
+
+  - id: OPR021
+    description: Missing database index on a filtered or joined column
+    category: performance
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR021
+
+  - id: OPR022
+    description: Unbounded query — SELECT without LIMIT on a large table
+    category: performance
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR022
+
+  - id: OPR023
+    description: Synchronous I/O blocking in an async context
+    category: performance
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR023
+
+  - id: OPR024
+    description: Loading entire file into memory instead of streaming
+    category: performance
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR024
+
+  - id: OPR025
+    description: Repeated expensive computation that could be cached
+    category: performance
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR025
+
+  # ── Logic ───────────────────────────────────────────────────────────────────
+
+  - id: OPR030
+    description: Off-by-one error in index or range
+    category: logic
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR030
+
+  - id: OPR031
+    description: Race condition — shared mutable state without locking
+    category: logic
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR031
+
+  - id: OPR032
+    description: Missing null/None check before dereferencing
+    category: logic
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR032
+
+  - id: OPR033
+    description: Exception swallowed silently (bare except or empty except block)
+    category: logic
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR033
+
+  - id: OPR034
+    description: Incorrect error propagation — exception caught but not re-raised or logged
+    category: logic
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR034
+
+  - id: OPR035
+    description: Mutable default argument in function definition
+    category: logic
+    severity: error
+    docs_url: https://docs.oneport.dev/rules/OPR035
+
+  - id: OPR036
+    description: Integer overflow risk in arithmetic operation
+    category: logic
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR036
+
+  # ── Patterns ────────────────────────────────────────────────────────────────
+
+  - id: OPR040
+    description: God object — class with too many responsibilities
+    category: pattern
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR040
+
+  - id: OPR041
+    description: Duplicated logic that should be extracted into a shared function
+    category: pattern
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR041
+
+  - id: OPR042
+    description: Magic number — unexplained numeric literal
+    category: pattern
+    severity: info
+    docs_url: https://docs.oneport.dev/rules/OPR042
+
+  - id: OPR043
+    description: Function with too many parameters (>5) — consider a config object
+    category: pattern
+    severity: info
+    docs_url: https://docs.oneport.dev/rules/OPR043
+
+  - id: OPR044
+    description: Deep nesting (>3 levels) reducing readability
+    category: pattern
+    severity: warning
+    docs_url: https://docs.oneport.dev/rules/OPR044
+
+  - id: OPR045
+    description: Boolean flag parameter that controls function behaviour — use separate functions
+    category: pattern
+    severity: info
+    docs_url: https://docs.oneport.dev/rules/OPR045

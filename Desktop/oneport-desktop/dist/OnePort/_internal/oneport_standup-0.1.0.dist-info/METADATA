@@ -1,0 +1,107 @@
+Metadata-Version: 2.4
+Name: oneport-standup
+Version: 0.1.0
+Summary: Turn your git history into standup notes, weekly summaries, and release notes — developer-owned, run on your machine, nothing uploaded.
+Author: Oneport
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: click>=8.1.0
+Requires-Dist: oneport-account>=0.1.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: httpx>=0.24.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+
+# Oneport Standup
+
+**Your git history → standup notes, weekly summaries, and release notes. Developer-owned: it reads _your_ git on _your_ machine and writes _your_ narrative. Nothing is uploaded.**
+
+You already did the work — it's in your commits. Stop re-typing it into Slack every
+morning. One command turns your commits into a clean update in the right voice.
+
+```
+$ oneport-standup daily
+
+# Standup — the last 24 hours
+_you (priya@acme.io)_
+
+**Shipped the checkout retry fix and started the refund flow.**
+
+## Shipped
+- Fixed the double-charge on checkout retries (ABC-412, #88)
+- Added idempotency keys to the payments client
+
+## In progress
+- Refund flow — models + migration landed, API next
+
+_6 commit(s) · 14 file change(s) · +512/-97 · refs: ABC-412_
+```
+
+## Why it's different
+
+LinearB, Jellyfish, and Swarmia read your GitHub **from their cloud** to build
+manager dashboards — engineers experience that as surveillance. `oneport-standup`
+inverts it: it runs on **your** machine, defaults to **your** commits, and the
+output is **yours** to paste wherever you want. There is no server. Your history
+never leaves the building.
+
+## Install
+
+```bash
+pip install oneport-standup
+# optional — for the written narrative; without it you still get a clean,
+# deterministic commit summary grouped by day:
+export GEMINI_API_KEY=AIza...    # free at https://aistudio.google.com/apikey
+```
+
+## Use
+
+```bash
+oneport-standup daily                 # last 24h → standup notes (defaults to you)
+oneport-standup weekly                # last 7 days → weekly summary
+oneport-standup since 2026-07-01      # since a date
+oneport-standup since v2.3.0          # since a tag/branch/commit
+oneport-standup release v2.3.0 v2.4.0 # release notes for a version range
+
+oneport-standup weekly --all          # everyone's commits, not just yours
+oneport-standup daily --author jo@x   # a specific author
+oneport-standup daily -f json         # machine-readable
+oneport-standup weekly --no-llm       # facts only, no API key needed
+```
+
+Markdown is the default output — the whole point is to paste it into Slack, a
+standup doc, a PR description, or a `CHANGELOG`. `-f inline` renders it prettily
+in the terminal; `-f json` is for tooling.
+
+## What's deterministic vs. AI
+
+- **Deterministic (always):** which commits, by whom, in the window; files touched;
+  line stats; ticket keys (`ABC-123`, `CVE-2026-…`) and PR refs (`#42`) pulled from
+  subjects. This is pure `git log` — no model, no network.
+- **AI (optional):** grouping those commits into themed, readable bullets in the
+  right voice. The model may only rephrase and group what the commits say — it
+  never invents work. If it's unavailable, you get the deterministic day-grouped
+  report instead (never nothing).
+
+## Configure — `.oneportrc`
+
+```yaml
+standup:
+  model: gemini-flash-latest
+  output_format: markdown     # markdown | inline | json
+  max_commits: 120            # cap fed to the summariser
+```
+
+The shared `.oneport/guidelines.md` is passed to the summariser as tone/context
+(e.g. "write standups in past tense, no fluff").
+
+## Privacy
+
+Serverless by design. Every fact comes from your local `.git`. Only the optional
+prose summary calls a model, on your key. There is no Oneport server; your commit
+history and code never leave your machine.
+
+MIT licensed.

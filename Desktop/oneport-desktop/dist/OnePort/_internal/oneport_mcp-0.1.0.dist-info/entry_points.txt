@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-mcp = oneport_mcp.cli:main

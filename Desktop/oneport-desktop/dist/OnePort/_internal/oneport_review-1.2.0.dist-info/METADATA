@@ -1,0 +1,227 @@
+Metadata-Version: 2.4
+Name: oneport-review
+Version: 1.2.0
+Summary: AI-powered code review for teams without a senior engineer
+Author-email: Oneport <eng@oneport.dev>
+License: MIT License
+        
+        Copyright (c) 2025 Oneport
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://oneport.dev
+Project-URL: Documentation, https://docs.oneport.dev
+Project-URL: Repository, https://github.com/oneport/oneport-review
+Project-URL: Issues, https://github.com/oneport/oneport-review/issues
+Project-URL: Changelog, https://github.com/oneport/oneport-review/blob/main/CHANGELOG.md
+Keywords: code-review,ai,static-analysis,claude,anthropic
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Quality Assurance
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: oneport-account>=0.1.0
+Requires-Dist: click>=8.1.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: gitpython>=3.1.0
+Requires-Dist: platformdirs>=4.0.0
+Provides-Extra: anthropic
+Requires-Dist: anthropic>=0.25.0; extra == "anthropic"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: pytest-httpx>=0.30.0; extra == "dev"
+Requires-Dist: ruff>=0.4.0; extra == "dev"
+Requires-Dist: mypy>=1.10.0; extra == "dev"
+Requires-Dist: types-pyyaml; extra == "dev"
+Requires-Dist: types-requests; extra == "dev"
+Requires-Dist: pre-commit>=3.0.0; extra == "dev"
+Dynamic: license-file
+
+# Oneport Review
+
+> The AI code reviewer that lives in your pull requests — reviews every PR line-by-line, proposes one-click fixes, briefs your reviewers, answers questions in-thread, and learns your team's standards.
+
+[![PyPI version](https://badge.fury.io/py/oneport-review.svg)](https://pypi.org/project/oneport-review/)
+[![CI](https://github.com/Bitxn/oneport-review/actions/workflows/ci.yml/badge.svg)](https://github.com/Bitxn/oneport-review/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## What happens on every PR
+
+Once the [two workflow files](examples/workflows) are in your repo, every pull request gets:
+
+1. **An inline review** — findings appear as per-line comments in the Files Changed tab, exactly where a human reviewer would put them. Security holes, logic bugs, performance traps, bad patterns — each explained in plain English with *why it matters*.
+2. **One-click fixes** — when Oneport is confident in the exact repair, the comment carries a committable suggestion. Reviewer clicks **Commit suggestion**, done.
+3. **A briefing comment** — a high-level summary of what the PR does, a per-file walkthrough table, and a Mermaid diagram of how the changed pieces interact. Updated in place on every push (never spams the timeline). Your human reviewers start oriented instead of cold.
+4. **A conversation partner** — reply `@oneport why is this a problem?` under any finding and it answers in-thread, with the diff and full thread as context. Push back; if you're right, it concedes. If you're not, it shows you the failing case.
+5. **A memory** — reply `@oneport remember: never use naive datetimes` and it commits the rule to `.oneport/guidelines.md` on the PR branch. Every future review enforces it. The reviewer gets *more yours* over time.
+6. **A merge gate** — error/critical findings fail the check (severity thresholds configurable), so the red X does the arguing for you.
+
+And it scales like a real reviewer:
+
+- **Incremental** — pushed three more commits? Only those get re-reviewed (a hidden marker in the last review is the state; the PR is the database). `--full` forces a fresh look.
+- **No PR too big** — oversized diffs split on file boundaries into multiple deep review passes, merged into one review. No token-limit faceplants, no shallow skims.
+- **Linter-fused** — if `ruff`/`bandit` are installed, their findings feed the model as hints to confirm or reject: linter exhaustiveness plus LLM judgment.
+- **Whole-file vision** — the model sees the full, line-numbered content of changed files, not just diff hunks, so findings account for surrounding code.
+- **`ignore_paths` that works** — `migrations/**`, `vendor/**`, `**/*.generated.py` never reach the model (or your token bill).
+
+Your code goes to exactly one place — the Anthropic API, on your own key. No middleman server, no training on your code, telemetry off by default. The full story fits on one page: [PRIVACY.md](PRIVACY.md).
+
+---
+
+## Setup in 2 minutes (GitHub)
+
+```bash
+pip install oneport-review
+```
+
+1. Add your `ANTHROPIC_API_KEY` as a repository secret (Settings → Secrets and variables → Actions).
+2. Copy the two workflows from [examples/workflows](examples/workflows) into `.github/workflows/`:
+   - [`oneport-review.yml`](examples/workflows/oneport-review.yml) — review + fixes + briefing on every PR
+   - [`oneport-chat.yml`](examples/workflows/oneport-chat.yml) — `@oneport` replies and `remember:`
+
+Open a PR. That's it.
+
+## CLI — review before anyone sees it
+
+```bash
+# Either key works — Gemini has a free tier (aistudio.google.com/apikey):
+export ANTHROPIC_API_KEY=sk-ant-...    # Claude
+export GEMINI_API_KEY=AIza...          # or Gemini (auto-selects gemini-2.5-flash)
+
+oneport review --staged                                  # what you're about to commit
+oneport review --head                                    # your last commit
+oneport review src/auth.py                               # any file
+oneport review https://github.com/org/repo/pull/42       # any PR, in your terminal
+oneport review https://github.com/org/repo/pull/42 --post  # ...and post it as an inline review
+oneport summarize https://github.com/org/repo/pull/42 --post  # post the briefing comment
+```
+
+Exit code 1 on error/critical findings, so every command drops straight into scripts and CI.
+
+### Block bad commits before they exist
+
+```bash
+oneport install-hooks
+```
+
+Installs a git pre-commit hook that reviews staged changes and blocks the commit on blocking findings (`ONEPORT_SKIP=1 git commit ...` to bypass once). Using the [pre-commit framework](https://pre-commit.com)? A hook definition ships in [.pre-commit-hooks.yaml](.pre-commit-hooks.yaml).
+
+---
+
+## Teach it your team's standards
+
+Three ways, same result — rules land in `.oneport/guidelines.md`, version-controlled in your repo, enforced on every review like the built-in catalog:
+
+```bash
+# from the terminal
+oneport learn "never use print() in library code, use logging"
+```
+
+```text
+# from a PR thread
+@oneport remember: all public functions need docstrings with examples
+```
+
+```markdown
+<!-- or just edit .oneport/guidelines.md — it's plain markdown -->
+- API handlers must validate ownership before any DB write
+```
+
+Built-in rules are configurable too — `.oneportrc`:
+
+```yaml
+model: claude-sonnet-4-20250514
+
+rules:
+  ignore: [OPR042]          # disable a rule
+  severity:
+    OPR020: critical        # N+1 queries block merges in this repo
+
+output:
+  format: inline            # inline | json | github | sarif
+  min_severity: warning
+```
+
+`oneport rules list` shows the whole catalog: security (SQLi, hardcoded secrets, SSRF, path traversal, command injection...), performance (N+1, sync-in-async, unbounded queries...), logic (races, off-by-one, swallowed exceptions...), and architecture patterns.
+
+---
+
+## Output formats
+
+| Format | Use case |
+|--------|----------|
+| `inline` | Terminal — coloured, human-readable, shows suggested fixes |
+| `json` | Scripting — includes a `blocking` field for CI decisions |
+| `github` | GitHub Checks API annotation payloads |
+| `sarif` | VS Code Problems panel, GitHub Code Scanning |
+
+```bash
+oneport review file.py --format json | jq '.issues[] | select(.severity == "critical")'
+```
+
+## Programmatic API
+
+```python
+from oneport import review
+
+result = review("path/to/file.py")
+for issue in result.issues:
+    print(f"[{issue.severity}] Line {issue.line}: {issue.message}")
+    if issue.fix:
+        print(f"  Committable fix:\n{issue.fix}")
+```
+
+## VS Code
+
+Search **"Oneport Review"** in the Extensions panel — findings appear as squiggles with hover explanations. SARIF output also plugs into any SARIF-aware editor tooling.
+
+---
+
+## GitLab & Bitbucket
+
+`oneport review` accepts GitLab MR and Bitbucket PR URLs today (terminal output). Inline comment posting for both is on the roadmap; GitHub is the deepest integration.
+
+## Privacy
+
+Short version: your code goes to the Anthropic API on your key and nowhere else; the only local artifact is a cache you can wipe with `oneport cache clear`; telemetry is off unless you explicitly turn it on. Long version, written for your security team: [PRIVACY.md](PRIVACY.md).
+
+## Contributing
+
+```bash
+git clone https://github.com/Bitxn/oneport-review
+cd oneport-review
+pip install -e ".[dev]"
+pytest
+```
+
+## License
+
+MIT © Oneport

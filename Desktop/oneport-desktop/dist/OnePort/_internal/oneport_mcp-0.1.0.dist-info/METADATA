@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: oneport-mcp
+Version: 0.1.0
+Summary: OnePort inside your AI coding agent — an MCP server + hook pack that gates AI-generated code: blocks secrets as they're written, and runs the pre-ship checks (CVEs, migrations, API breaks, test gaps) from Claude Code, Cursor, Codex, VS Code or any MCP client.
+Author: Oneport
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: mcp>=2.0.0
+Requires-Dist: click>=8.1.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"

@@ -1,0 +1,13 @@
+../../Scripts/depcheck.exe,sha256=zxWzKW7QSlMvxzZOe-4PqWId_OzeR01PA4PfzJxMDcI,108360
+../../Scripts/oneport-depcheck.exe,sha256=zxWzKW7QSlMvxzZOe-4PqWId_OzeR01PA4PfzJxMDcI,108360
+__editable__.oneport_depcheck-1.0.0.pth,sha256=zW2hxDd9AAJ6M_gEXGSKgPb-3k166NhHtMK27Q5cPLw,103
+__editable___oneport_depcheck_1_0_0_finder.py,sha256=diIKOSHWL5UG7j59z5XVrZC5Rpawc7dCmZoASjHNRg0,3430
+__pycache__/__editable___oneport_depcheck_1_0_0_finder.cpython-313.pyc,,
+oneport_depcheck-1.0.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+oneport_depcheck-1.0.0.dist-info/METADATA,sha256=glvdbJeYOSpV9igK2HQSGZJvTd-8mHSHY-lNpk-4Uec,5658
+oneport_depcheck-1.0.0.dist-info/RECORD,,
+oneport_depcheck-1.0.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+oneport_depcheck-1.0.0.dist-info/WHEEL,sha256=K260EYznzXsJYBQGqmI8VTxEdiZYNvDZwW9cBh9-_MA,91
+oneport_depcheck-1.0.0.dist-info/direct_url.json,sha256=mLpbSpEW9gLZorgV-k1LLix5udKrSUHkNYiuqohS0xs,90
+oneport_depcheck-1.0.0.dist-info/entry_points.txt,sha256=aWk9341IN15E3uSuofh1kGXTeleAF214Ma7KvHJvNUA,100
+oneport_depcheck-1.0.0.dist-info/top_level.txt,sha256=BTysRrOcNmxDRXlUYILl5kaeoEh-zDPXMASgXQJstFk,17

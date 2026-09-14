@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-standup = oneport_standup.cli:main

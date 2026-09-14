@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OnePort",
+  "version": "0.1.0",
+  "identifier": "in.co.oneport.desktop",
+  "build": {
+    "frontendDist": "../../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "OnePort — Security Cockpit",
+        "width": 1120,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 640,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "Pre-ship security gate for AI-written code",
+    "longDescription": "OnePort runs your full pre-ship security gate — secrets, dependency CVEs, migration safety, API breaking changes, test gaps and AI review — against a repo, locally, and gives one honest verdict. It never fakes a pass.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

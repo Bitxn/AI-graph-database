@@ -1,0 +1,104 @@
+Metadata-Version: 2.4
+Name: oneport-evidence
+Version: 0.1.0
+Summary: Turn your op ship history into SOC 2 / ISO 27001 compliance evidence packs — deterministic, sign-off-ready, generated on your machine. No AI in your audit trail.
+Author: Oneport
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: click>=8.1.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: reportlab>=4.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+
+# Oneport Evidence
+
+**Turn your `op ship` history into SOC 2 / ISO 27001 compliance evidence packs — deterministic, sign-off-ready, generated on your machine. No AI in your audit trail.**
+
+Every time Oneport gates a deployment, it's an audit event: a control ran, and it
+either passed or blocked a violation. `oneport-evidence` reads that history and
+produces the artifact auditors actually ask for — *"show me that your change-management
+and vulnerability-management controls were operating during the period"* — as a
+branded, signable PDF.
+
+```
+$ oneport-evidence report --framework soc2 --period 90d --org "Acme Corp" -o evidence.pdf
+Wrote evidence.pdf
+
+# what's inside:
+#   Executive summary — 143 deployments gated, 12 blocked & remediated
+#   Control coverage   — CC6.1, CC7.1, CC8.1 … Operating
+#   Per-control detail — which gate evidences each control, execution counts
+#   Attestation + signature block
+```
+
+## Why it's different
+
+Vanta, Drata, and Secureframe automate **infrastructure** evidence — cloud configs,
+MDM, HR offboarding. **None of them see inside your SDLC at the code level.** They
+can't tell an auditor that every deployment passed secret scanning and dependency
+CVE review, because they never watched the deploys. Oneport did — it *is* the gate —
+so it can produce that evidence directly, and:
+
+- **Deterministic, AI-free.** An audit trail must be a verifiable count, not model
+  prose. Every number here is a direct tally of control executions.
+- **Local-first.** Audit evidence is exactly the thing that can't leak. Nothing
+  leaves your environment — which is itself the compliance argument.
+
+## Install
+
+```bash
+pip install oneport-evidence
+```
+
+No API key, ever. This tool is purely deterministic.
+
+## Use
+
+```bash
+oneport-evidence frameworks                      # controls + gate mappings
+oneport-evidence report --framework soc2 --period 90d -o evidence.pdf
+oneport-evidence report -F iso27001 -p 1y -f html -o evidence.html
+oneport-evidence report -F soc2 -p 30d -f md     # markdown to stdout
+```
+
+Periods: `30d`, `90d`, `6m`, `1y`, or a start date `2026-01-01`. Formats: `pdf`
+(default), `html`, `md`, `json`. Frameworks: `soc2`, `iso27001`.
+
+### Where the data comes from
+
+- **Zero setup — the usage ledger.** Every `op ship` run already writes
+  `~/.oneport/usage.db` (per-gate status, timestamp, repo hash). `report` reads it
+  by default. If you've been running `op ship`, you already have evidence.
+- **Richer — ingest.** For finding-level detail, pipe reports in:
+  ```bash
+  op ship --format json | oneport-evidence ingest -
+  oneport-evidence report -F soc2 --source ingested -o evidence.pdf
+  ```
+
+## What it maps
+
+Each control lists the Oneport gates whose executions evidence it. For example,
+under SOC 2:
+
+| Control | Evidenced by |
+|---|---|
+| CC6.1 — Credential protection | `secrets` |
+| CC7.1 — Vulnerability management | `depcheck` |
+| CC8.1 — Change management | `review`, `migrate`, `apidiff`, `testgap`, `impact` |
+
+ISO/IEC 27001:2022 Annex A (A.8.28 secure coding, A.8.8 vulnerability management,
+A.8.12 data-leakage prevention, A.8.32 change management, A.8.29 security testing)
+is mapped the same way. Control text is paraphrased from the public criteria to
+anchor the evidence — it is not a substitute for the standards.
+
+## Privacy
+
+Serverless and AI-free by design. The report is a deterministic aggregation of your
+own local control ledger. Nothing is uploaded; no model is called. That's not just a
+privacy stance — it's what makes the evidence defensible.
+
+MIT licensed.

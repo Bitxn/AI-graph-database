@@ -1,0 +1,116 @@
+Metadata-Version: 2.4
+Name: oneport-upgrade
+Version: 0.1.0
+Summary: Framework/version upgrade copilot — detect deprecated APIs, apply safe codemods, and verify with your own tests. Python, Django, Pydantic. Runs on your machine.
+Author: Oneport
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: click>=8.1.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: httpx>=0.24.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+
+# Oneport Upgrade
+
+**The framework/version upgrade copilot: detect deprecated & removed APIs, apply the safe codemods, and verify with _your own tests_ — Python, Django, Pydantic. Runs on your machine.**
+
+Version upgrades are the most postponed, most hated work in every codebase.
+`oneport-upgrade` does the mechanical 80% deterministically and hands you a
+verified diff, so "upgrade to Django 5" stops being a quarter-long project.
+
+```
+$ oneport-upgrade scan --to django:5.0
+
+Upgrade django:5.0  · 214 files scanned
+
+38 finding(s): 31 removed, 7 deprecated  ·  29 auto-fixable, 9 manual
+
+To change
+  auto · removed · ugettext() removed  ×18
+      accounts/views.py:12 — (imported from django.utils.translation)
+  auto · removed · force_text() removed  ×6
+  manual · removed · NullBooleanField removed  ×3
+      models.py:44 — Use BooleanField(null=True).
+
+$ oneport-upgrade apply --to django:5.0 --verify
+
+Applied (29 fixes across 14 files)
+  ✓ accounts/views.py:12  ugettext() removed
+  ...
+Verify (pytest): before 402p/0f → after 402p/0f — no regressions
+```
+
+## Why it's different
+
+| Tool | Scope | Gap |
+|---|---|---|
+| Moderne / OpenRewrite | Java refactors | not Python; heavy platform + services pricing |
+| LibCST / Bowler | Python codemod *libraries* | not a product; you write the transforms |
+| **oneport-upgrade** | **Python / Django / Pydantic upgrades, detect → fix → verify** | **runs locally; codemods are verified by your own tests** |
+
+The killer feature is `apply --verify`: it runs your pytest suite **before and
+after** the codemods and tells you if anything regressed. You get a migration PR
+that's already green.
+
+## Install
+
+```bash
+pip install oneport-upgrade
+# optional — only the written `plan` uses a model; scan & apply need no key:
+export GEMINI_API_KEY=AIza...
+```
+
+## Use
+
+```bash
+oneport-upgrade list                          # supported targets
+oneport-upgrade scan  --to django:5.0         # detect (read-only)
+oneport-upgrade scan  --to python:3.12 --fail-on-removed   # CI gate
+oneport-upgrade plan  --to pydantic:2         # ordered migration plan (needs key)
+oneport-upgrade apply --to django:5.0 --dry-run   # preview the fixes
+oneport-upgrade apply --to django:5.0 --verify    # apply + run tests before/after
+```
+
+Targets: `python:3.12`, `django:5.0`, `pydantic:2` (aliases like `django`, `py`,
+`pydantic2` work). Point at a subpath with a trailing argument:
+`oneport-upgrade scan --to django:5.0 accounts/`.
+
+## What's deterministic vs. AI
+
+- **Deterministic (always):** AST detection of every deprecated/removed API with
+  file:line; the safe codemods (name/import renames, `collections`→`collections.abc`
+  moves) with alias preservation; and the pytest verification. No model touches any
+  of this.
+- **AI (optional, `plan` only):** an ordered, written migration plan derived from
+  the findings. It only sequences and explains what the scanner found — it never
+  invents an API or a step.
+
+### Safety
+
+- Only **auto** rules are applied; structural changes (validators, `NullBooleanField`,
+  `Config` classes) are flagged with guidance, never auto-rewritten.
+- Import scoping means a local `url()` helper is never mistaken for Django's removed
+  `url()` — a rule fires only when the symbol came from the right module.
+- After editing a file it's re-parsed; if the result wouldn't parse, the file is
+  reverted. It never writes broken code.
+- A mixed import (`from collections import Mapping, OrderedDict`) is left for a
+  human — moving it would break the name that didn't move.
+
+## Configure — `.oneportrc`
+
+```yaml
+upgrade:
+  model: gemini-flash-latest
+  verify_timeout: 600
+```
+
+## Privacy
+
+Serverless by design. Detection, codemods, and verification all run on your machine.
+Only the optional `plan` calls a model, on your key. Your code never leaves the building.
+
+MIT licensed.

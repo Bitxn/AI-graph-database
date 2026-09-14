@@ -1,0 +1,213 @@
+Metadata-Version: 2.4
+Name: oneport-testgap
+Version: 0.1.0
+Summary: Diff-scoped test-gap analyzer: finds untested changed code, ranks it by risk, and generates tests it has actually executed and verified
+Author-email: Oneport <eng@oneport.dev>
+License: MIT License
+        
+        Copyright (c) 2026 Oneport
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://oneport.dev
+Project-URL: Repository, https://github.com/oneport/oneport-testgap
+Project-URL: Issues, https://github.com/oneport/oneport-testgap/issues
+Project-URL: Changelog, https://github.com/oneport/oneport-testgap/blob/main/CHANGELOG.md
+Keywords: testing,coverage,test-generation,ai,diff-cover,pytest
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Quality Assurance
+Classifier: Topic :: Software Development :: Testing
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: click>=8.1.0
+Requires-Dist: oneport-account>=0.1.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: rich>=13.0.0
+Provides-Extra: claude
+Requires-Dist: anthropic>=0.25.0; extra == "claude"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: respx>=0.21.0; extra == "dev"
+Requires-Dist: ruff>=0.4.0; extra == "dev"
+Dynamic: license-file
+
+# Oneport Testgap
+
+**Diff-scoped test-gap analysis that doesn't stop at a number.**
+
+Codecov and diff-cover tell you *"71% patch coverage"* and leave. Qodo generates
+tests and hopes they work. Testgap does the whole job:
+
+1. **Finds** exactly which changed lines have zero test coverage (deterministic:
+   `git diff` ∩ `pytest --cov`, never an LLM guess),
+2. **Ranks** each gap by risk — payment, auth, and data-write logic outrank
+   logging — with a one-sentence explanation of *why* it's risky,
+3. **Generates** pytest tests for the riskiest gaps and — the part nobody else
+   does — **executes every generated test before showing it to you**. Tests
+   that fail, or that don't actually cover the gap lines they were written for,
+   are discarded. What lands in `tests/generated/` has already passed.
+
+```
+$ oneport-testgap analyze --staged --generate 3
+
+Oneport Testgap — staged changes
+1 file(s) analyzed · 6 changed line(s) · 4 with zero coverage
+
+[CRITICAL] payment.py:4-7  (charge)
+           Fee arithmetic and the negative-amount guard ship completely untested.
+
+Generated tests (only VERIFIED tests are written to disk):
+  VERIFIED  tests/generated/test_gap_charge.py — passed, covers 4/4 gap line(s)
+            of payment.py [1 attempt(s)]
+
+RESULT: critical-risk changed lines have zero coverage — exit 1 (CI gate).
+```
+
+## Install
+
+```bash
+pip install oneport-testgap
+```
+
+Requires `pytest` + `pytest-cov` in the project you're analyzing (Testgap
+no-ops gracefully with a clear message if they're missing, or you can hand it
+an existing report with `--coverage-file coverage.xml`).
+
+Set a model API key — either works, Gemini is free:
+
+```bash
+export GEMINI_API_KEY=AIza...        # free at https://aistudio.google.com/apikey
+# or
+export ANTHROPIC_API_KEY=sk-ant-...  # needs: pip install oneport-testgap[claude]
+```
+
+## Usage
+
+```bash
+oneport-testgap analyze                    # staged changes (default)
+oneport-testgap analyze --head             # the last commit
+oneport-testgap analyze https://github.com/org/repo/pull/42   # a PR (run on a checkout of its branch)
+
+oneport-testgap analyze --generate 3       # write verified tests for the top 3 gaps
+oneport-testgap analyze --min-risk high    # only report high/critical gaps
+oneport-testgap analyze --format json      # machine-readable, for pipelines
+oneport-testgap analyze --coverage-file coverage.xml   # reuse an existing report
+oneport-testgap analyze <PR_URL> --post    # comment the gap report on the PR
+```
+
+### CI gate
+
+Exit codes are the contract:
+
+| Code | Meaning |
+|------|---------|
+| 0    | No critical-risk gaps (or graceful no-op: no changes / no pytest) |
+| 1    | Changed **critical-risk** lines have zero coverage — block the merge |
+| 2    | Configuration / auth / usage error |
+
+`--min-risk` only filters the *report*; the exit-1 gate always fires on
+critical gaps. A ready-made GitHub Action lives in
+[examples/workflows/testgap.yml](examples/workflows/testgap.yml).
+
+## How it works (and what the LLM is never allowed to do)
+
+```
+git diff ──► changed lines ─┐
+                            ├─► gaps = changed ∩ uncovered   ← deterministic, always
+pytest --cov ► coverage.xml ┘
+                                    │
+                                    ▼
+                        LLM: rank by risk + explain why      ← judgment only
+                                    │  --generate N
+                                    ▼
+                        LLM writes a pytest file
+                                    │
+                        temp file → real pytest run → real coverage check
+                                    │
+                       pass + gap lines covered?  ──no──► discarded (one repair
+                                    │yes                   round, then gone)
+                                    ▼
+                        tests/generated/  (review it, commit it yourself)
+```
+
+The model **never computes coverage facts**. It sees gaps that are already
+proven uncovered and only decides how much they matter and how to test them.
+Its tests earn their place by executing — a generated test you see is a test
+that already ran green and demonstrably covered the lines it targets.
+
+### vs. the alternatives
+
+|                          | Codecov / diff-cover | Qodo | **Testgap** |
+|--------------------------|----------------------|------|-------------|
+| Diff-scoped coverage     | ✅ number only        | ➖    | ✅ per-line, per-function |
+| Risk ranking + why       | ❌                    | ➖    | ✅ |
+| Test generation          | ❌                    | ✅    | ✅ |
+| **Generated tests executed & verified before you see them** | ❌ | ❌ | ✅ |
+| Runs with zero servers   | ❌ (upload service)   | ❌    | ✅ |
+
+## Configuration
+
+Testgap reads the suite-wide `.oneportrc` (same file as oneport-review).
+Top-level keys are shared; a `testgap:` section overrides them for this tool:
+
+```yaml
+api_key: AIza...            # or use the env var
+model: gemini-2.5-flash
+ignore_paths:
+  - migrations/**
+  - "**/*_pb2.py"
+
+testgap:
+  output:
+    min_risk: medium
+  generate:
+    repair_rounds: 1        # failed test gets its pytest output fed back once
+    test_timeout: 120
+    output_dir: tests/generated
+  coverage:
+    pytest_args: ["-m", "not slow"]
+    timeout: 600
+```
+
+Team guidelines in `.oneport/guidelines.md` (the file `oneport learn` writes)
+are injected into both the ranking and generation prompts — testing rules like
+*"all payment code needs edge-case tests"* shift the ranking and shape the
+generated tests.
+
+## Privacy
+
+No servers, no telemetry, no upload step. Your code goes to exactly one place:
+the model API (Google or Anthropic) **on your own key**. Coverage runs happen
+on your machine. See [PRIVACY.md](PRIVACY.md).
+
+## Part of the Oneport suite
+
+Testgap is one gate in [Oneport](https://oneport.dev), the AI pre-ship check:
+**oneport-review** (AI code review) · **oneport-testgap** (this) · more coming.

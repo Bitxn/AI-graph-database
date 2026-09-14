@@ -1,0 +1,129 @@
+rules:
+
+  # ── Destructive operations ──────────────────────────────────────────────────
+
+  - id: OPM001
+    description: Dropping a column — data is unrecoverable once deployed
+    category: destructive
+    severity: critical
+    rationale: >
+      A dropped column's data is gone the moment the migration runs. Old
+      application code still reading/writing the column errors immediately
+      during a rolling deploy. Ship in two stages: first deploy code that no
+      longer touches the column, then drop it in a later release.
+    docs_url: https://docs.oneport.dev/migrate/OPM001
+
+  - id: OPM002
+    description: Dropping a table — data is unrecoverable once deployed
+    category: destructive
+    severity: critical
+    rationale: >
+      DROP TABLE destroys all rows with no undo. Any code path still querying
+      the table fails hard. Archive the data and remove all references first.
+    docs_url: https://docs.oneport.dev/migrate/OPM002
+
+  - id: OPM003
+    description: Destructive raw SQL — TRUNCATE or DELETE without WHERE
+    category: destructive
+    severity: critical
+    rationale: >
+      TRUNCATE and unfiltered DELETE wipe every row in the table. If this is
+      intentional, it should be an explicit, reviewed runbook step — not a
+      migration that CI applies automatically.
+    docs_url: https://docs.oneport.dev/migrate/OPM003
+
+  # ── Locking / availability ──────────────────────────────────────────────────
+
+  - id: OPM010
+    description: ALTER COLUMN TYPE (or altered field definition) — may rewrite the whole table under an exclusive lock
+    category: locking
+    severity: error
+    rationale: >
+      On Postgres, changing a column's type usually rewrites the entire table
+      while holding ACCESS EXCLUSIVE — all reads and writes block for the
+      duration. On MySQL some changes are online, many are not. Safe pattern:
+      add a new column, dual-write, backfill in batches, swap, drop old.
+    docs_url: https://docs.oneport.dev/migrate/OPM010
+
+  - id: OPM011
+    description: Adding a NOT NULL column without a default to an existing table
+    category: locking
+    severity: error
+    rationale: >
+      Every existing row violates the new constraint, so the migration fails
+      on any non-empty table — or forces a full-table rewrite to backfill.
+      Safe pattern: add the column as nullable (or with a DEFAULT), backfill
+      in batches, then add the NOT NULL constraint.
+    docs_url: https://docs.oneport.dev/migrate/OPM011
+
+  - id: OPM012
+    description: CREATE INDEX without CONCURRENTLY on an existing table (Postgres)
+    category: locking
+    severity: error
+    rationale: >
+      A plain CREATE INDEX takes a lock that blocks all writes to the table
+      until the build finishes — minutes to hours on large tables. Postgres
+      offers CREATE INDEX CONCURRENTLY, which must run outside a transaction
+      (Django: AddIndexConcurrently with atomic=False; Alembic:
+      postgresql_concurrently=True inside an autocommit block).
+    docs_url: https://docs.oneport.dev/migrate/OPM012
+
+  - id: OPM013
+    description: Adding a NOT NULL constraint to an existing column
+    category: locking
+    severity: error
+    rationale: >
+      SET NOT NULL scans the whole table to validate existing rows while
+      holding a lock, and fails outright if any NULLs remain. Backfill first;
+      on Postgres 12+ add a CHECK (col IS NOT NULL) NOT VALID, VALIDATE it,
+      then SET NOT NULL (which reuses the validated constraint).
+    docs_url: https://docs.oneport.dev/migrate/OPM013
+
+  # ── Reversibility ────────────────────────────────────────────────────────────
+
+  - id: OPM020
+    description: Missing reverse migration (no reverse_code / empty downgrade / no reverse SQL)
+    category: reversibility
+    severity: warning
+    rationale: >
+      When a deploy goes wrong, the rollback path is the migration's reverse.
+      An irreversible migration turns "roll back the release" into an
+      incident-time improvisation. Provide reverse_code / downgrade /
+      reverse_sql — even RunPython.noop is better than nothing, because it
+      makes irreversibility an explicit, reviewed decision.
+    docs_url: https://docs.oneport.dev/migrate/OPM020
+
+  # ── Transactions ────────────────────────────────────────────────────────────
+
+  - id: OPM021
+    description: Data migration inside a schema transaction
+    category: locking
+    severity: error
+    rationale: >
+      A data backfill running in the same transaction as schema changes (or in
+      one big atomic migration) holds locks and transaction state for the
+      whole run — on a large table that is an outage. Move data migrations to
+      their own non-atomic migration (Django: atomic = False) and batch the
+      writes.
+    docs_url: https://docs.oneport.dev/migrate/OPM021
+
+  # ── Rolling deploys ─────────────────────────────────────────────────────────
+
+  - id: OPM030
+    description: Renaming a column breaks rolling deploys
+    category: deploy
+    severity: warning
+    rationale: >
+      During a rolling deploy, old and new code run simultaneously — one of
+      them is always using the wrong column name. Safe pattern: add the new
+      column, dual-write, backfill, switch reads, drop the old column later.
+    docs_url: https://docs.oneport.dev/migrate/OPM030
+
+  - id: OPM031
+    description: Renaming a table breaks rolling deploys
+    category: deploy
+    severity: warning
+    rationale: >
+      Same failure mode as a column rename, table-wide. Prefer creating a view
+      with the old name during the transition, or migrate access code first.
+    docs_url: https://docs.oneport.dev/migrate/OPM031

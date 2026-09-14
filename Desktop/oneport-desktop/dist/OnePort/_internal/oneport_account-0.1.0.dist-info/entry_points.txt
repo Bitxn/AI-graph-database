@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-account = oneport_account.cli:main

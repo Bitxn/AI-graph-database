@@ -1,0 +1,138 @@
+Metadata-Version: 2.4
+Name: oneport-impact
+Version: 0.1.0
+Summary: Blast-radius engine — what breaks if I touch this? Reverse call graph + git co-change mining + ownership, judged by an LLM, run entirely on your machine.
+Author: Oneport
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: click>=8.1.0
+Requires-Dist: oneport-account>=0.1.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: httpx>=0.24.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+
+# Oneport Impact
+
+**"What breaks if I touch this?" — the blast-radius engine that reads your repo's own structure and history, on your machine.**
+
+Before you change a function, one command tells you who calls it, which tests
+cover it, which files *historically change with it*, and who to ask — then an LLM
+judges how load-bearing it is. `grep` finds text; Sourcegraph finds references.
+Neither tells you that `models.py` and `serializers.py` change together **83% of
+the time** even though there's no import between them. That temporal coupling
+lives only in git history — and Impact mines it locally, so nothing is uploaded
+to learn it.
+
+```
+$ oneport-impact analyze billing/stripe.py
+
+Blast radius: billing/stripe.py  (file)
+  LOAD-BEARING  ·  128 call site(s) across 34 file(s)  ·  61 commits in history
+
+  This is core payment code exercised across the app; a signature change here
+  ripples into checkout, webhooks, and the admin refund flow.
+  Check first: billing/webhooks.py  — changes with this file 83% of the time
+
+  Changes together with  (temporal coupling)
+     83%  billing/webhooks.py       (51/61 commits)
+     44%  tests/test_payments.py     (27/61 commits)
+  Ask
+     @payments-team  [CODEOWNER]
+     Priya Nair  (22 commits, last 2026-05-30)
+```
+
+## Why it's different
+
+| Tool | What it gives you | The gap |
+|---|---|---|
+| `grep` / IDE "find usages" | text matches | no ranking, no history, no judgment |
+| Sourcegraph | cross-repo references | search, not *risk*; needs your code on their servers |
+| **oneport-impact** | callers **+ temporal coupling + ownership + risk verdict** | **local-first — your code never leaves the machine** |
+
+Every fact is deterministic (Python `ast` + `git log`); the model only *judges*
+the facts. When a symbol's name is too common to attribute reliably (`__init__`,
+`get`), Impact **refuses to guess** rather than report an inflated number — the
+line between "structured, better than grep" and "confidently wrong."
+
+## Install
+
+```bash
+pip install oneport-impact
+# optional, for the risk verdict — detection works without it:
+export GEMINI_API_KEY=AIza...    # free at https://aistudio.google.com/apikey
+```
+
+## Use
+
+```bash
+# Query the blast radius of a symbol or file
+oneport-impact analyze charge                       # by name
+oneport-impact analyze billing.stripe.Client.charge # by qualname
+oneport-impact analyze billing/stripe.py            # by file
+
+# Gate a change set (for pre-commit / CI)
+oneport-impact check --staged        # what you're about to commit
+oneport-impact check --head          # the last commit
+oneport-impact check --staged --format json   # machine-readable
+
+oneport-impact analyze charge --no-llm   # facts only, no API key
+```
+
+Exit code is `1` when a change trips a blocking finding (per `--fail-on`),
+`0` otherwise — drop `check` straight into CI.
+
+### What the gate flags
+
+- **IMP001 — wide blast radius:** you're changing a symbol many places call.
+- **IMP010 — missing co-change companion:** you changed a file but *not* the file
+  it historically changes with, e.g. *"you changed `model.py` but not
+  `serializer.py`, which changes with it 80% of the time."*
+
+## Configure — `.oneportrc`
+
+```yaml
+thresholds:
+  fan_in_warn: 8            # callers before a change is "wide"
+  fan_in_error: 25          # …before it's "very wide"
+  cochange_confidence: 0.5  # a companion must co-change this often to be flagged
+  cochange_min_together: 3  # …and at least this many times
+  max_commits: 1500         # history depth mined for co-change
+```
+
+The same `.oneport/guidelines.md` the rest of the suite reads is fed to the risk
+verdict as context ("our payments module is business-critical").
+
+## In the Oneport gate
+
+`oneport-impact` is an opt-in gate in [`op ship`](https://pypi.org/project/oneport/).
+Enable it in `.oneport/oneport.yaml`:
+
+```yaml
+enable:
+  - impact
+```
+
+It's advisory by default (warns, blocks only on critical) — it informs the
+ship decision without nagging.
+
+## Privacy
+
+Serverless by design. The call graph, co-change mining, and ownership all run on
+your machine from your repo's own `.git`. Only the optional one-paragraph risk
+verdict calls a model, on your key. There is no Oneport server; your code never
+leaves the building.
+
+## How it works
+
+- **`callgraph.py`** — reverse call graph via the `ast` module, with an ambiguity
+  guard so common names don't inflate fan-in.
+- **`cochange.py`** — temporal-coupling miner over `git log`, skipping mass-change
+  commits that would couple everything.
+- **`ownership.py`** — git authors + CODEOWNERS.
+- **`advisor.py`** — the LLM risk verdict; judgment only, never invents facts.
+
+MIT licensed.

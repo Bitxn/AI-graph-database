@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-review = oneport.cli:main

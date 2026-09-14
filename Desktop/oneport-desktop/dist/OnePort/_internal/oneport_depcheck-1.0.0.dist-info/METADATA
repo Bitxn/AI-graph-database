@@ -1,0 +1,136 @@
+Metadata-Version: 2.4
+Name: oneport-depcheck
+Version: 1.0.0
+Summary: Dependency CVE gate: deterministic detection via OSV.dev, LLM-triaged exploitability so the 3 vulns that matter surface above the 40 that don't
+Author-email: Oneport <eng@oneport.dev>
+License: MIT
+Project-URL: Homepage, https://oneport.dev
+Project-URL: Repository, https://github.com/oneport/oneport-depcheck
+Project-URL: Changelog, https://github.com/oneport/oneport-depcheck/blob/main/CHANGELOG.md
+Keywords: security,dependencies,cve,osv,sca,vulnerability,reachability
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Security
+Classifier: Topic :: Software Development :: Quality Assurance
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: click>=8.1.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: oneport-account>=0.1.0
+Requires-Dist: packaging>=23.0
+Requires-Dist: tomli>=2.0.0; python_version < "3.11"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: respx>=0.21.0; extra == "dev"
+
+# oneport-depcheck
+
+**Dependency CVE gate — deterministic detection, LLM-triaged exploitability.**
+
+Every scanner can tell you `requests==2.19.1` has a CVE. Depcheck tells you
+whether *your code* can actually hit it — so the 3 vulnerabilities that matter
+surface above the 40 that don't.
+
+```
+1. [HIGH] [REACHABLE] requests==2.19.1  CVE-2018-18074
+   requirements.txt:2
+   Why: fetch.py:8 calls requests.get() on user-supplied URLs that can
+        redirect cross-origin, leaking the Authorization header — live.
+   Fix: upgrade to 2.20.0 - Minor upgrade (2.19 -> 2.20) - low breakage risk.
+        requests==2.20.0
+```
+
+## Architecture: detection is deterministic, judgment is LLM
+
+1. **Deterministic core (no model, ever).** Manifests and lockfiles are parsed
+   locally; each pinned `package==version` is checked against
+   [OSV.dev](https://osv.dev) (free, public, no key). Severity is computed from
+   the advisory's CVSS vector — same input, same output, every time. The model
+   is **never** asked whether a package is vulnerable. License risks
+   (GPL/AGPL in a proprietary repo) are flagged the same way.
+2. **LLM triage (the judgment layer).** For each *confirmed* CVE, depcheck
+   greps your codebase for actual usage of the package (imports, call sites,
+   file:line) and asks the model one question: is the vulnerable path
+   exploitable *here*? Verdicts: `REACHABLE`, `LIKELY-UNREACHABLE`, `DEV-ONLY`.
+   Dev-only deps and never-imported packages are classified deterministically
+   without a model call.
+3. **Upgrade guidance.** Safe target version (clears every CVE for the
+   package), a one-line what-might-break note from the semver gap, and the
+   exact manifest line change as a committable suggestion.
+
+## Install
+
+```bash
+pip install oneport-depcheck
+export GEMINI_API_KEY=AIza...   # free at https://aistudio.google.com/apikey
+```
+
+`ANTHROPIC_API_KEY` also works (Claude). No key at all? `scan --no-llm` still
+runs full deterministic detection.
+
+## Usage
+
+```bash
+oneport-depcheck scan                       # scan ./ manifests
+oneport-depcheck scan path/to/repo --fix    # + consolidated fix plan
+oneport-depcheck scan --format json         # machine-readable
+oneport-depcheck scan --min-severity high   # hide LOW/MEDIUM
+oneport-depcheck scan --fail-on any         # CI: exit 1 on any CVE
+oneport-depcheck scan --fail-on reachable   # CI: exit 1 only if exploitable (default)
+oneport-depcheck scan --post https://github.com/org/repo/pull/42
+```
+
+`--post` posts inline PR comments on the exact manifest lines (with one-click
+committable `suggestion` blocks for pin bumps) plus a sticky summary table
+that updates in place on re-runs (hidden HTML marker — no server needed).
+
+### Supported manifests
+
+`requirements.txt` (+ `requirements-dev.txt` variants) · `poetry.lock` ·
+`Pipfile.lock` · `package.json` · `package-lock.json` (v1–v3)
+
+Unpinned requirements can't be checked against a version database; depcheck
+lists them as skipped rather than silently claiming they're clean.
+
+### CI gate
+
+```yaml
+- run: pip install oneport-depcheck
+- run: oneport-depcheck scan --fail-on reachable
+  env:
+    GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+```
+
+Exit codes: `0` pass · `1` gate failed · `2` usage/auth/OSV error.
+`UNTRIAGED` findings fail the `reachable` gate — unverified is not safe.
+
+### Team guidelines
+
+`.oneport/guidelines.md` (shared with all Oneport tools) is injected into the
+triage prompt:
+
+```bash
+oneport-depcheck learn "dev-dependency CVEs are warn-only"
+```
+
+DEV-ONLY findings never fail `--fail-on reachable` by design.
+
+## Privacy
+
+Serverless — see [PRIVACY.md](PRIVACY.md). Package names/versions go to
+OSV.dev and the package registries (public data); usage snippets of vulnerable
+packages go to the model on **your** API key. Nothing else leaves the machine.
+
+## What this is not
+
+- Not a guess engine: every vulnerability reported has an OSV.dev id you can
+  look up. If OSV doesn't know it, depcheck doesn't report it.
+- Not a replacement for upgrading: `LIKELY-UNREACHABLE` means *lower priority
+  right now*, not *never fix*.

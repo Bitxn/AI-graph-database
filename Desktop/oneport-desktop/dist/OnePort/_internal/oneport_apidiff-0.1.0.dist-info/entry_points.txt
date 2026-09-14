@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-apidiff = oneport_apidiff.cli:main

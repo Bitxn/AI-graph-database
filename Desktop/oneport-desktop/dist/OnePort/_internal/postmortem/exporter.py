@@ -1,0 +1,329 @@
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
+)
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from datetime import datetime
+import re
+
+
+# ── Brand colors ──────────────────────────────────────────────────────────────
+BLACK       = colors.HexColor("#0A0A0A")
+WHITE       = colors.HexColor("#FFFFFF")
+ACCENT      = colors.HexColor("#E8FF00")   # oneport yellow-green
+DARK_GRAY   = colors.HexColor("#1A1A1A")
+MID_GRAY    = colors.HexColor("#3A3A3A")
+LIGHT_GRAY  = colors.HexColor("#F5F5F5")
+DIM_GRAY    = colors.HexColor("#888888")
+RED         = colors.HexColor("#FF4444")
+ORANGE      = colors.HexColor("#FF8C00")
+CYAN        = colors.HexColor("#00C8C8")
+GREEN       = colors.HexColor("#00C851")
+
+SEVERITY_COLORS = {
+    "CRITICAL": RED,
+    "HIGH":     ORANGE,
+    "MEDIUM":   CYAN,
+    "LOW":      GREEN,
+}
+
+
+def _make_styles():
+    base = getSampleStyleSheet()
+
+    styles = {
+        "meta": ParagraphStyle(
+            "meta",
+            fontName="Helvetica",
+            fontSize=9,
+            textColor=DIM_GRAY,
+            spaceAfter=2,
+        ),
+        "meta_value": ParagraphStyle(
+            "meta_value",
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            textColor=BLACK,
+            spaceAfter=2,
+        ),
+        "section_heading": ParagraphStyle(
+            "section_heading",
+            fontName="Helvetica-Bold",
+            fontSize=10,
+            textColor=WHITE,
+            spaceBefore=14,
+            spaceAfter=6,
+            leftIndent=0,
+            leading=14,
+        ),
+        "body": ParagraphStyle(
+            "body",
+            fontName="Helvetica",
+            fontSize=9,
+            textColor=BLACK,
+            spaceAfter=4,
+            leading=14,
+        ),
+        "timeline": ParagraphStyle(
+            "timeline",
+            fontName="Courier",
+            fontSize=8.5,
+            textColor=DARK_GRAY,
+            spaceAfter=3,
+            leading=13,
+            leftIndent=4,
+        ),
+        "whys": ParagraphStyle(
+            "whys",
+            fontName="Helvetica-Oblique",
+            fontSize=8.5,
+            textColor=MID_GRAY,
+            spaceAfter=3,
+            leading=13,
+            leftIndent=8,
+        ),
+        "bullet": ParagraphStyle(
+            "bullet",
+            fontName="Helvetica",
+            fontSize=9,
+            textColor=BLACK,
+            spaceAfter=3,
+            leading=13,
+            leftIndent=12,
+            bulletIndent=2,
+        ),
+        "action_p1": ParagraphStyle(
+            "action_p1",
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            textColor=RED,
+            spaceAfter=1,
+            leading=13,
+        ),
+        "action_p2": ParagraphStyle(
+            "action_p2",
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            textColor=ORANGE,
+            spaceAfter=1,
+            leading=13,
+        ),
+        "action_p3": ParagraphStyle(
+            "action_p3",
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            textColor=CYAN,
+            spaceAfter=1,
+            leading=13,
+        ),
+        "owner": ParagraphStyle(
+            "owner",
+            fontName="Helvetica",
+            fontSize=8,
+            textColor=DIM_GRAY,
+            spaceAfter=6,
+            leading=12,
+            leftIndent=12,
+        ),
+        "footer": ParagraphStyle(
+            "footer",
+            fontName="Helvetica",
+            fontSize=7.5,
+            textColor=DIM_GRAY,
+            alignment=TA_CENTER,
+        ),
+    }
+    return styles
+
+
+def _section_block(text: str, styles: dict):
+    """Returns a dark-background section heading block."""
+    return [
+        Spacer(1, 4),
+        Table(
+            [[Paragraph(text, styles["section_heading"])]],
+            colWidths=[160 * mm],
+            style=TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), DARK_GRAY),
+                ("LEFTPADDING",  (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING",   (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING",(0, 0), (-1, -1), 5),
+            ]),
+        ),
+        Spacer(1, 4),
+    ]
+
+
+def export_pdf(txt_path: str, pdf_path: str):
+    """
+    Reads a post-mortem .txt file and exports it as a styled PDF.
+    """
+    with open(txt_path, "r", encoding="utf-8", errors="replace") as f:
+        raw = f.read()
+
+    # Strip the oneport header/footer lines added by save_to_file
+    lines = [
+        l for l in raw.split("\n")
+        if not l.startswith("INCIDENT POST-MORTEM — GENERATED BY ONEPORT")
+        and not l.startswith("=" * 10)
+    ]
+
+    styles = _make_styles()
+    doc = SimpleDocTemplate(
+        pdf_path,
+        pagesize=A4,
+        leftMargin=25 * mm,
+        rightMargin=25 * mm,
+        topMargin=20 * mm,
+        bottomMargin=20 * mm,
+    )
+
+    story = []
+
+    # ── Cover header ──────────────────────────────────────────────────────────
+    story.append(
+        Table(
+            [[
+                Paragraph("<font color='#E8FF00'><b>ONEPORT</b></font>", ParagraphStyle(
+                    "logo", fontName="Helvetica-Bold", fontSize=18, textColor=ACCENT
+                )),
+                Paragraph("INCIDENT POST-MORTEM", ParagraphStyle(
+                    "title", fontName="Helvetica-Bold", fontSize=13,
+                    textColor=WHITE, alignment=TA_CENTER
+                )),
+                Paragraph(
+                    f"Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                    ParagraphStyle("gen", fontName="Helvetica", fontSize=8, textColor=DIM_GRAY)
+                ),
+            ]],
+            colWidths=[40 * mm, 90 * mm, 30 * mm],
+            style=TableStyle([
+                ("BACKGROUND",    (0, 0), (-1, -1), BLACK),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
+                ("TOPPADDING",    (0, 0), (-1, -1), 10),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+                ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+            ]),
+        )
+    )
+    story.append(Spacer(1, 6))
+    story.append(HRFlowable(width="100%", thickness=2, color=ACCENT))
+    story.append(Spacer(1, 10))
+
+    # ── Parse and render lines ─────────────────────────────────────────────────
+    current_section = None
+    meta_rows = []
+
+    HEADER_FIELDS = ("TITLE:", "DATE:", "DURATION:", "SEVERITY:", "IMPACT:")
+    SECTION_HEADERS = (
+        "SUMMARY", "TIMELINE", "ROOT CAUSE", "CONTRIBUTING FACTORS",
+        "ACTION ITEMS", "LESSONS LEARNED"
+    )
+
+    def flush_meta():
+        if not meta_rows:
+            return
+        tbl = Table(
+            meta_rows,
+            colWidths=[35 * mm, 125 * mm],
+            style=TableStyle([
+                ("BACKGROUND",    (0, 0), (0, -1), LIGHT_GRAY),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+                ("TOPPADDING",    (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("GRID",          (0, 0), (-1, -1), 0.3, colors.HexColor("#DDDDDD")),
+            ]),
+        )
+        story.append(tbl)
+        story.append(Spacer(1, 8))
+        meta_rows.clear()
+
+    for line in lines:
+        line = line.rstrip()
+
+        # ── Meta header fields ─────────────────────────────────────────────
+        if any(line.startswith(h) for h in HEADER_FIELDS):
+            key, _, value = line.partition(":")
+            value = value.strip()
+
+            # Color severity badge
+            if key == "SEVERITY":
+                sev_color = SEVERITY_COLORS.get(value, BLACK)
+                val_para = Paragraph(
+                    f"<font color='{sev_color.hexval()}'><b>{value}</b></font>",
+                    styles["meta_value"]
+                )
+            else:
+                val_para = Paragraph(value, styles["meta_value"])
+
+            meta_rows.append([
+                Paragraph(key, styles["meta"]),
+                val_para,
+            ])
+            continue
+
+        # ── Section headers ────────────────────────────────────────────────
+        matched_section = next(
+            (s for s in SECTION_HEADERS if line.strip().startswith(s)), None
+        )
+        if matched_section:
+            flush_meta()
+            current_section = matched_section
+            story.extend(_section_block(line.strip(), styles))
+            continue
+
+        # ── Skip blank lines gracefully ────────────────────────────────────
+        if not line.strip():
+            story.append(Spacer(1, 3))
+            continue
+
+        # ── Timeline lines ─────────────────────────────────────────────────
+        if current_section == "TIMELINE" and re.match(r"\s*\d{2}:\d{2}", line):
+            story.append(Paragraph(line.strip(), styles["timeline"]))
+            continue
+
+        # ── 5-Whys lines ───────────────────────────────────────────────────
+        if current_section and "ROOT CAUSE" in current_section and "→" in line:
+            story.append(Paragraph(line.strip(), styles["whys"]))
+            continue
+
+        # ── Bullet points ──────────────────────────────────────────────────
+        if line.strip().startswith("•"):
+            story.append(Paragraph(line.strip(), styles["bullet"]))
+            continue
+
+        # ── Action items ───────────────────────────────────────────────────
+        if line.strip().startswith("[P1]"):
+            story.append(Paragraph(line.strip(), styles["action_p1"]))
+            continue
+        if line.strip().startswith("[P2]"):
+            story.append(Paragraph(line.strip(), styles["action_p2"]))
+            continue
+        if line.strip().startswith("[P3]"):
+            story.append(Paragraph(line.strip(), styles["action_p3"]))
+            continue
+        if line.strip().startswith("Owner:"):
+            story.append(Paragraph(line.strip(), styles["owner"]))
+            continue
+
+        # ── Default body text ──────────────────────────────────────────────
+        story.append(Paragraph(line.strip(), styles["body"]))
+
+    flush_meta()
+
+    # ── Footer ────────────────────────────────────────────────────────────────
+    story.append(Spacer(1, 16))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=DIM_GRAY))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(
+        "Generated by oneport-postmortem · oneport.co.in · Confidential",
+        styles["footer"]
+    ))
+
+    doc.build(story)

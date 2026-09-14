@@ -1,0 +1,2 @@
+[console_scripts]
+postmortem = postmortem.cli:main

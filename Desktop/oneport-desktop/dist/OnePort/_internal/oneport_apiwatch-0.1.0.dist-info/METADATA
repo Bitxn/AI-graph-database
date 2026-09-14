@@ -1,0 +1,221 @@
+Metadata-Version: 2.4
+Name: oneport-apiwatch
+Version: 0.1.0
+Summary: Self-hosted API health monitoring with AI-explained failures — runs in your own cron/CI, never on our servers
+Author-email: Oneport <eng@oneport.dev>
+License: MIT License
+        
+        Copyright (c) 2026 Oneport
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://oneport.dev
+Project-URL: Repository, https://github.com/oneport/oneport-apiwatch
+Project-URL: Issues, https://github.com/oneport/oneport-apiwatch/issues
+Project-URL: Changelog, https://github.com/oneport/oneport-apiwatch/blob/main/CHANGELOG.md
+Keywords: api-monitoring,uptime,healthcheck,ci,gemini,self-hosted
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: System :: Monitoring
+Classifier: Topic :: Software Development :: Quality Assurance
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: click>=8.1.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: oneport-account>=0.1.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: respx>=0.20.0; extra == "dev"
+Requires-Dist: ruff>=0.4.0; extra == "dev"
+Requires-Dist: mypy>=1.10.0; extra == "dev"
+Requires-Dist: types-pyyaml; extra == "dev"
+Dynamic: license-file
+
+# oneport-apiwatch
+
+**Self-hosted API health monitoring with AI-explained failures. It runs in _your_ cron or CI, on _your_ keys — never on our servers.**
+
+UptimeRobot and Checkly watch your APIs from someone else's cloud. `oneport-apiwatch` is a single stateless command you schedule in **your own GitHub Actions / cron**. It probes your endpoints, and when something breaks it explains _why_ in plain English and alerts _your_ Slack — with zero infrastructure on our side and your data never leaving your machine.
+
+```
+✗ payments  POST https://api.acme.com/pay  [500 · 1840ms]
+      → status 500 (expected 200)
+      → latency 1840ms over budget 1000ms
+      AI diagnosis: 500s with "connection pool exhausted" and latency climbing
+      over the last 3 runs point to a database connection leak.
+        1. DB connection pool exhausted
+        2. A recent deploy stopped releasing connections
+        first action: Check the last deploy and your DB pool metrics.
+```
+
+---
+
+## Monitoring without a server (the headline)
+
+The whole product is one idea: **let GitHub's scheduler be the uptime robot.**
+
+1. Drop a checks file (`oneport-apiwatch.yaml`) and a scheduled workflow into your repo.
+2. GitHub Actions wakes every 5 minutes, runs `oneport-apiwatch check`, and the job goes **red** if any endpoint is down.
+3. On failure it explains the cause (your Gemini key) and alerts **your** Slack / opens an issue in **your** repo.
+
+No server of ours sits in the path. You own the schedule, the keys, the alerts, and the history file.
+
+```yaml
+# .github/workflows/apiwatch.yml
+name: API Watch
+on:
+  schedule:
+    - cron: "*/5 * * * *"     # GitHub's scheduler is your uptime robot
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  issues: write
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install oneport-apiwatch
+      - uses: actions/cache@v4        # keep status history across runs for trend detection
+        with:
+          path: .oneport-apiwatch-history.json
+          key: apiwatch-history-${{ github.run_id }}
+          restore-keys: apiwatch-history-
+      - env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          oneport-apiwatch check --explain --alert slack --alert github-issue
+```
+
+The complete, commented version is in [`examples/workflows/apiwatch.yml`](examples/workflows/apiwatch.yml). Prefer plain cron? It's the same one line:
+
+```cron
+*/5 * * * *  cd /srv/checks && oneport-apiwatch check --explain --alert slack
+```
+
+---
+
+## Install
+
+```bash
+pip install oneport-apiwatch
+```
+
+Python 3.10+. The deterministic check needs **no API key at all** — a Gemini key is only used for the optional `--explain` diagnosis (free at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)).
+
+## The checks file
+
+Secrets never live in this file — auth headers are pulled from environment variables by name, so it's safe to commit.
+
+```yaml
+model: gemini-2.5-flash            # optional; only used by --explain
+history_file: .oneport-apiwatch-history.json
+
+defaults:                          # applied to every check unless overridden
+  method: GET
+  expect_status: 200
+  latency_budget_ms: 2000
+  timeout: 10
+
+checks:
+  - name: homepage
+    url: https://example.com/
+
+  - name: api-health
+    url: https://api.example.com/health
+    expect_status: [200, 204]      # int, or a list of acceptable codes
+    latency_budget_ms: 800
+    headers:
+      Accept: application/json
+    body:                          # JSON-body assertions
+      - path: status               # dot-path into the response (lists: data.items.0.id)
+        equals: ok
+      - path: db.connected
+        equals: true
+      - path: data.count
+        gt: 0
+
+  - name: billing
+    url: https://api.example.com/v1/account
+    auth_header_env: API_TOKEN     # value read from $API_TOKEN at runtime
+    auth_header_name: Authorization
+```
+
+**Body assertion operators:** `equals`, `not_equals`, `contains`, `exists`, `gt`, `lt` (exactly one per assertion).
+
+A check **fails** when any of these is true: transport error (DNS / refused / timeout), status not in `expect_status`, latency over `latency_budget_ms`, response isn't valid JSON while assertions are set, or any body assertion fails.
+
+## CLI
+
+```
+oneport-apiwatch check [OPTIONS]
+
+  --config FILE                Path to the checks file (default: ./oneport-apiwatch.yaml).
+  --alert [slack|github-issue] Alert this channel on failure. Repeatable.
+  --explain                    Add an AI diagnosis to each failure (needs GEMINI_API_KEY).
+  --format [inline|json]       Output format (default: inline).
+  --no-history                 Don't read/write the local status-history file.
+
+oneport-apiwatch auth          Show whether a Gemini key is configured.
+```
+
+**Exit codes:** `0` all healthy · `1` one or more checks failed · `2` config error · `3` a check failed *and* an alert failed to deliver.
+
+## Alerting — your channels, not ours
+
+| Channel | Env it uses | What it does |
+|---|---|---|
+| `slack` | `SLACK_WEBHOOK_URL` | POSTs a failure summary (with the AI diagnosis) to your own Slack incoming webhook. |
+| `github-issue` | `GITHUB_REPOSITORY`, `GITHUB_TOKEN` | Opens — or updates, deduped by a hidden marker — one issue in your repo describing the failures. |
+
+Both use credentials you provide. Nothing routes through Oneport.
+
+## Trend detection
+
+Each run appends `{ok, status_code, latency_ms, timestamp}` per check to a local JSON file you own (`history_file`). The `--explain` layer feeds the recent runs to the model, so it can distinguish "just went down" from "latency has been climbing for three runs." In CI, persist that file with `actions/cache` (see the workflow) so trends survive across scheduled runs.
+
+## Privacy / the moat
+
+Serverless by design. Your endpoints are probed from your machine; the only outbound call besides the endpoints themselves is the optional Gemini request under `--explain`, made with your key. See [PRIVACY.md](PRIVACY.md).
+
+## Development
+
+```bash
+pip install -e ".[dev]"
+pytest            # 83 tests, respx-mocked endpoints + LLM + Slack, 80% coverage gate
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

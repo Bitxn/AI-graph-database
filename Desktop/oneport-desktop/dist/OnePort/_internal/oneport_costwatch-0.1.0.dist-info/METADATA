@@ -1,0 +1,229 @@
+Metadata-Version: 2.4
+Name: oneport-costwatch
+Version: 0.1.0
+Summary: AI infrastructure cost gate — reads your IaC, no cloud credentials needed
+Author-email: Oneport <eng@oneport.dev>
+License: MIT License
+        
+        Copyright (c) 2026 Oneport
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://oneport.dev
+Project-URL: Repository, https://github.com/oneport/oneport-costwatch
+Project-URL: Issues, https://github.com/oneport/oneport-costwatch/issues
+Project-URL: Changelog, https://github.com/oneport/oneport-costwatch/blob/main/CHANGELOG.md
+Keywords: finops,cost-optimization,terraform,iac,ai,gemini,infracost
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Quality Assurance
+Classifier: Topic :: System :: Systems Administration
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: click>=8.1.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: oneport-account>=0.1.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: rich>=13.0.0
+Provides-Extra: claude
+Requires-Dist: anthropic>=0.25.0; extra == "claude"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: ruff>=0.4.0; extra == "dev"
+Requires-Dist: mypy>=1.10.0; extra == "dev"
+Requires-Dist: types-pyyaml; extra == "dev"
+Dynamic: license-file
+
+# Oneport Costwatch
+
+**An AI infrastructure-cost gate that reads your Infrastructure-as-Code — no cloud credentials needed.**
+
+Point it at a repo full of Terraform / Docker Compose and it tells you what's
+about to cost you money and *how to make it cheaper* — before you `apply`.
+It works entirely from the IaC you already have. It never asks for AWS/GCP
+keys, never touches your account, and never leaves your machine except for one
+call to the model of your choice.
+
+```
+$ oneport-costwatch analyze infra/
+
+Oneport Costwatch
+  Parsed 4 resource(s); 4 priced. Approx provisioned cost: ~$1,947/mo
+  Potential savings: ~$791/mo across 4 finding(s)
+
+🔴 CRITICAL aws_instance.api  save ~$364/mo  (dev-no-shutdown)
+   Development instances are running 24/7 and can be shut down nights/weekends.
+   - environment = dev, count = 2  →  + add a shutdown schedule (Instance Scheduler)
+   infra/main.tf:4
+
+🟠 HIGH aws_instance.batch_worker  save ~$300/mo  (always-on)
+   A batch worker running 24/7 on on-demand is wasteful for a bursty workload.
+   - environment = staging  →  + AWS Batch on Spot, or a schedule
+   infra/main.tf:28
+   ...
+```
+
+---
+
+## Why not just Infracost?
+
+[Infracost](https://www.infracost.io/) is great at one thing: putting a **price
+tag** on your Terraform. Costwatch is a different job — it's the **judgment
+layer** on top of the price tag:
+
+| | Infracost | Oneport Costwatch |
+|---|---|---|
+| Price a Terraform plan | ✅ | ✅ (rough, bundled table) |
+| Multi-source IaC (Compose too) | Terraform-focused | ✅ Terraform **+** Docker Compose |
+| *"This is 4× oversized, here's the right size"* | ❌ | ✅ (the wedge) |
+| Spot/serverless/shutdown/autoscaling advice | ❌ | ✅ |
+| PR gate on cost **increase** | partial | ✅ sticky comment + exit code |
+| Needs cloud credentials | no | **no** |
+
+Costwatch's estimate is deliberately approximate — if you want a penny-accurate
+plan cost, run Infracost too. Costwatch is here to catch the *waste*.
+
+---
+
+## Install
+
+```bash
+pip install oneport-costwatch
+```
+
+Set a model key. **Gemini is free** and needs no extra dependency:
+
+```bash
+export GEMINI_API_KEY=AIza...      # free at https://aistudio.google.com/apikey
+# or, for Claude:
+pip install 'oneport-costwatch[claude]'
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Deterministic pricing (`oneport-costwatch price`) needs **no key at all**.
+
+---
+
+## Usage
+
+```bash
+# Analyze a directory of IaC (default: current dir)
+oneport-costwatch analyze infra/
+
+# Most accurate source: a Terraform plan you already generated
+terraform show -json plan.tfplan > plan.json
+oneport-costwatch analyze infra/ --plan plan.json
+
+# Deterministic estimate only — no model call, no key
+oneport-costwatch price infra/
+
+# JSON for CI / dashboards
+oneport-costwatch analyze infra/ -f json
+
+# Only show the big stuff
+oneport-costwatch analyze infra/ -s high
+```
+
+### Cost diff on pull requests (the gate)
+
+```bash
+oneport-costwatch analyze https://github.com/org/repo/pull/42 --post
+```
+
+Costwatch fetches the **base** and **head** versions of the changed IaC files,
+prices both, and — **only if the PR raises provisioned cost past the threshold** —
+posts a sticky comment explaining *"this PR adds ~$340/mo, here's a cheaper
+config."* Re-runs update the same comment (hidden HTML marker; the PR is the
+state store — no server, no database). Add `--fail-on-increase` to turn it into
+a hard CI gate. Needs `GITHUB_TOKEN`.
+
+See [`examples/workflows/`](examples/workflows/) for a ready-to-drop GitHub
+Actions workflow.
+
+---
+
+## Teach it your rules
+
+Costwatch reads `.oneport/guidelines.md` (path configurable) and honours it on
+every run. For example:
+
+```markdown
+# Cost guidelines
+- prod must stay on-demand — never suggest spot for prod resources
+- our batch tier is allowed to run large instances overnight
+```
+
+A guideline-driven decision is tagged `team-guideline` in the output, and
+Costwatch will *not* raise a finding a guideline forbids.
+
+---
+
+## What it parses
+
+- **Terraform** — `.tf` files (HCL) and `terraform show -json` plan output.
+  Extracts `aws_instance`, `aws_db_instance`, `aws_ebs_volume`,
+  `aws_elasticache_cluster`, `aws_autoscaling_group`, `google_compute_instance`,
+  and more — instance types, storage, replicas, counts, env tags.
+- **Docker Compose** — services, `image`, `deploy.replicas`, resource limits.
+
+Unknown instance types are still reported (just without a dollar estimate).
+
+---
+
+## Configuration
+
+Optional `.oneport-costwatch.yml` in your repo root:
+
+```yaml
+model: gemini-2.5-flash
+output:
+  format: inline        # inline | json | github
+  min_severity: info    # info | warning | high | critical
+ignore_paths:
+  - .terraform
+  - modules/vendored
+guidelines_path: .oneport/guidelines.md
+post_threshold: 25      # only --post-comment when a PR adds ≥ $25/mo
+```
+
+Env vars: `GEMINI_API_KEY` / `ANTHROPIC_API_KEY`, `COSTWATCH_MODEL`,
+`COSTWATCH_FORMAT`, `GITHUB_TOKEN`.
+
+---
+
+## Privacy
+
+Serverless and low-trust by design — see [PRIVACY.md](PRIVACY.md). In short:
+**no cloud credentials, read-only, runs on your machine.** The only thing that
+leaves your box is the resource inventory sent to your chosen model API, under
+your own key.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

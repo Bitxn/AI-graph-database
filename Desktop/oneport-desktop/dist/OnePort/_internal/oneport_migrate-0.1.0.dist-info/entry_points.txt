@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-migrate = oneport_migrate.cli:main

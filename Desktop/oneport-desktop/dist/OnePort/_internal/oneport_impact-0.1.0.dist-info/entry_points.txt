@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-impact = oneport_impact.cli:main

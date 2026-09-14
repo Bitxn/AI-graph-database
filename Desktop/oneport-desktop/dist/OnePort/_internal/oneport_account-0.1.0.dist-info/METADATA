@@ -1,0 +1,69 @@
+Metadata-Version: 2.4
+Name: oneport-account
+Version: 0.1.0
+Summary: Oneport account & metering client — login, token balance, redeem codes, and the managed-LLM proxy every Oneport tool bills through.
+Author: Oneport
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: click>=8.1.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: httpx>=0.24.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+
+# oneport-account
+
+**The account & metering client shared by every paid Oneport tool.** Login, token
+balance, redeem codes — and the `call_managed_llm()` function tools use to run a
+billed model call through the Oneport backend.
+
+No tool ever holds a model key. Each holds only your revocable `op_live_...` token;
+the backend meters your balance and calls the model with the server-side key.
+
+## For users
+
+```bash
+# 1. Get a token (free signup tokens) at https://oneport.dev, then:
+oneport-account login op_live_xxxxxxxxxxxx      # or: op account login ...
+oneport-account balance                         # tokens remaining + usage by tool
+oneport-account redeem LAUNCH2026               # redeem a free-token code
+oneport-account logout
+```
+
+When a tool runs out of tokens it prints a buy link; top up on the website and keep
+going. Codes grant free tokens (great for launches, students, design partners).
+
+## For tool authors
+
+```python
+from oneport_account import call_managed_llm, OutOfTokens, NotLoggedIn
+
+try:
+    result = call_managed_llm(system, user, tool="apidiff", action="classify")
+    text, tokens, balance = result.text, result.tokens_used, result.balance
+except NotLoggedIn:
+    ...   # tell the user to `oneport-account login`
+except OutOfTokens as e:
+    ...   # show e.buy_url
+```
+
+`call_managed_llm` raises `NotLoggedIn`, `OutOfTokens` (with `.buy_url`),
+`RateLimited`, or `AccountError` — map these onto your tool's own taxonomy.
+
+## Configuration
+
+The backend URL resolves as: `$ONEPORT_API_URL` → the value pinned at login →
+`DEFAULT_API_URL` in `config.py` (set this to your Supabase Edge Functions base
+URL once, e.g. `https://<ref>.supabase.co/functions/v1`).
+
+The token is stored at `~/.oneport/credentials.json` (0600 where supported).
+
+## Privacy
+
+Deterministic work in every tool stays local. Only the LLM judgment call routes
+through the proxy so it can be metered — and only the already-computed prompt
+(never your repository) is sent. See each tool's PRIVACY notes.
+
+MIT licensed.

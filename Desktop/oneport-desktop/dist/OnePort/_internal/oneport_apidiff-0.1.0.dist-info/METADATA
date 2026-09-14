@@ -1,0 +1,157 @@
+Metadata-Version: 2.4
+Name: oneport-apidiff
+Version: 0.1.0
+Summary: Breaking-change gate for PRs — detects API breaks straight from the Python code diff, no OpenAPI spec required
+Author-email: Oneport <eng@oneport.dev>
+License: MIT License
+        
+        Copyright (c) 2026 Oneport
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://oneport.dev
+Project-URL: Repository, https://github.com/oneport/oneport-apidiff
+Project-URL: Issues, https://github.com/oneport/oneport-apidiff/issues
+Project-URL: Changelog, https://github.com/oneport/oneport-apidiff/blob/main/CHANGELOG.md
+Keywords: breaking-changes,api-diff,semver,ci,code-review,ai
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Quality Assurance
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: click>=8.1.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: oneport-account>=0.1.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: respx>=0.21.0; extra == "dev"
+Requires-Dist: ruff>=0.4.0; extra == "dev"
+Dynamic: license-file
+
+# Oneport ApiDiff
+
+**Breaking-change gate for PRs — straight from the Python code diff. No OpenAPI spec required.**
+
+`oasdiff` needs an OpenAPI spec. `buf breaking` needs protobuf. Most Python codebases have neither — their public API *is* the code. Oneport ApiDiff diffs the actual public surface of your changed `.py` files (via the `ast` module, deterministically) and gates the merge when a change would break consumers.
+
+```
+$ oneport-apidiff check --staged
+
+oneport-apidiff — --staged
+==========================
+Verdict: BREAKING   (2 breaking, 0 risky, 1 compatible; 1 file(s) checked)
+
+[BREAKING]   charge  (pkg/payments.py:6)
+    param `timeout` was removed
+    - def charge(amount, currency='usd', timeout=30)
+    + def charge(amount, currency='usd')
+    impact:    callers passing timeout positionally or by keyword now break
+    migration: drop the timeout argument; configure timeouts on the client instead
+    internal callers (2):
+      app/billing.py:1   from pkg.payments import charge
+      app/billing.py:14  charge(total, timeout=5)
+```
+
+Exit code `1` on BREAKING — wire it into CI and the merge is blocked until someone consciously overrides.
+
+## How it works
+
+**Deterministic detection, LLM classification.** The model never decides *what* changed — only what it *means*.
+
+1. **Deterministic core (`ast`)** — base and head versions of every changed `.py` file are compared as public API surfaces: removed symbols, added/removed/renamed/reordered required params, changed defaults, changed type annotations, sync↔async flips. If an `openapi.yaml`/`openapi.json` changed, its paths/methods/responses are diffed structurally too. Internal callers of every changed symbol are found by a deterministic repo scan and listed with `file:line`.
+2. **LLM layer (Claude or Gemini)** — each detected change is classified **BREAKING / RISKY / COMPATIBLE** with a one-line consumer-impact narrative and a migration note. Every change carries a deterministic default verdict, so if the model is down, wrong, or skipped (`--no-llm`), the gate still works.
+
+## Install
+
+```bash
+pip install oneport-apidiff
+export GEMINI_API_KEY=...   # free at https://aistudio.google.com/apikey
+# or: export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+## Usage
+
+```bash
+oneport-apidiff check --staged          # gate what you're about to commit (default)
+oneport-apidiff check --head            # gate the last commit
+oneport-apidiff check --base main       # gate your branch against main
+oneport-apidiff check https://github.com/org/repo/pull/42          # gate a PR
+oneport-apidiff check https://github.com/org/repo/pull/42 --post   # ...and post the verdict
+```
+
+Flags:
+
+| Flag | Effect |
+|------|--------|
+| `--post` | Post a sticky verdict table + inline comments on the exact changed signatures. Re-runs update in place (hidden marker) instead of duplicating. Requires `GITHUB_TOKEN`. |
+| `--format inline\|json` | Human or machine output. |
+| `--allow-breaking` | Report but exit 0 (adoption mode). |
+| `--no-llm` | Deterministic verdicts only — no API key needed at all. |
+
+Exit codes: `0` clean/compatible · `1` breaking changes · `2` usage/config/auth error.
+
+## Team guidelines
+
+ApiDiff reads the same `.oneport/guidelines.md` file as oneport-review. Verdicts respect your policy:
+
+```markdown
+- internal package, private API — only changes to __all__ symbols are breaking
+- CLI flag names are public API too
+```
+
+Detection stays deterministic either way; guidelines only shape what a change *means*.
+
+## CI
+
+See [examples/workflows/apidiff.yml](examples/workflows/apidiff.yml). Minimal version:
+
+```yaml
+- run: pip install oneport-apidiff
+- run: oneport-apidiff check "${{ github.event.pull_request.html_url }}" --post
+  env:
+    GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Privacy
+
+Serverless by design: your code goes from your machine (or your CI runner) directly to the model API **with your own key**. No Oneport servers, no telemetry, no storage. See [PRIVACY.md](PRIVACY.md).
+
+## vs. the alternatives
+
+| | oneport-apidiff | oasdiff | buf breaking |
+|---|---|---|---|
+| Works without a spec | **yes — diffs the code itself** | no (OpenAPI only) | no (protobuf only) |
+| Python public API (functions/classes/params) | **yes** | no | no |
+| OpenAPI paths/methods/responses | yes (when a spec is present) | yes (deeper) | no |
+| Consumer-impact narrative + migration notes | **yes (LLM)** | no | no |
+| Internal caller list ("these files break") | **yes** | no | no |
+
+Part of the [Oneport](https://oneport.dev) pre-ship gate suite, alongside `oneport-review`.

@@ -1,0 +1,15 @@
+{
+  "name": "oneport-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OnePort — Security Cockpit (Tauri shell over the verified OnePort engine)",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icon": "tauri icon"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

@@ -1,0 +1,81 @@
+Metadata-Version: 2.4
+Name: oneport-postmortem
+Version: 0.1.0
+Summary: AI-powered incident post-mortem generator for engineering teams
+Author-email: Bitan Dutta <bitandutta6345@gmail.com>
+License: MIT
+Project-URL: Homepage, https://oneport.co.in
+Project-URL: Repository, https://github.com/bitandutta/oneport-postmortem
+Project-URL: Bug Tracker, https://github.com/bitandutta/oneport-postmortem/issues
+Project-URL: Documentation, https://github.com/bitandutta/oneport-postmortem#readme
+Keywords: post-mortem,postmortem,incident,incident-response,SRE,devops,reliability,AI,gemini,cli
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: System :: Systems Administration
+Classifier: Topic :: System :: Logging
+Classifier: Environment :: Console
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: oneport-account>=0.1.0
+Requires-Dist: google-genai>=0.8.0
+Requires-Dist: click>=8.1.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: reportlab>=4.0.0
+Requires-Dist: requests>=2.31.0
+Requires-Dist: python-dotenv>=1.0.0
+Provides-Extra: api
+Requires-Dist: fastapi>=0.111.0; extra == "api"
+Requires-Dist: uvicorn[standard]>=0.29.0; extra == "api"
+Requires-Dist: python-multipart>=0.0.9; extra == "api"
+Requires-Dist: python-jose[cryptography]>=3.3.0; extra == "api"
+Requires-Dist: passlib[bcrypt]>=1.7.4; extra == "api"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: httpx>=0.27.0; extra == "dev"
+Requires-Dist: build>=1.0.0; extra == "dev"
+Requires-Dist: twine>=5.0.0; extra == "dev"
+Dynamic: license-file
+
+# oneport-postmortem
+
+> AI-powered incident post-mortem generator for engineering teams.
+
+[![PyPI version](https://badge.fury.io/py/oneport-postmortem.svg)](https://pypi.org/project/oneport-postmortem/)
+[![Python](https://img.shields.io/pypi/pyversions/oneport-postmortem)](https://pypi.org/project/oneport-postmortem/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+When your production system goes down, developers scramble to fix it — and almost never document what happened. The same incident hits again 3 months later.
+
+**oneport-postmortem breaks this cycle.** Paste your error logs or Slack thread, get a complete blameless post-mortem in under 60 seconds — with root cause analysis, action items, pattern detection, and Jira tickets created automatically.
+
+---
+
+## Install
+
+```bash
+pip install oneport-postmortem
+```
+
+## Quickstart
+
+```bash
+# 1. Get a free Gemini API key at https://aistudio.google.com/app/apikey
+
+# 2. Set your key
+export GEMINI_API_KEY=your_key_here
+
+# 3. Generate your first post-mortem
+postmortem generate --logs incident.txt
+```
+
+**Output:**

@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-evidence = oneport_evidence.cli:main

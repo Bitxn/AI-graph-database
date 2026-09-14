@@ -1,0 +1,8 @@
+# Rust / Cargo
+src-tauri/target/
+# Tauri codegen (schemas, generated capability types)
+src-tauri/gen/
+# Node
+node_modules/
+# Build output
+src-tauri/Cargo.lock.orig

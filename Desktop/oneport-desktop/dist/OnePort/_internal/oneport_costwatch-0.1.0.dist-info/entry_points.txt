@@ -1,0 +1,2 @@
+[console_scripts]
+oneport-costwatch = costwatch.cli:main
