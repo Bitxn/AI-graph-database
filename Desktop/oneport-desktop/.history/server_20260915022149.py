@@ -555,11 +555,6 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         q = parse_qs(u.query)
 
-
-        if u.path == "/api/projects/audit/progress":
-            self._send(200, audit.progress((q.get("id", [""])[0]).strip()))
-            return
-
         if u.path in ("/", "/index.html"):
             self._send(200, UI.read_bytes(), "text/html; charset=utf-8")
             return
@@ -718,10 +713,6 @@ class Handler(BaseHTTPRequestHandler):
                              "balance": info.get("balance"), "buy_url": _BUY_URL})
             return
 
-        if u.path == "/api/projects/audit/progress":
-            self._send(200, audit.progress((q.get("id", [""])[0]).strip()))
-            return
-        
         if u.path == "/api/logout":
             if _ACCOUNT:
                 try:

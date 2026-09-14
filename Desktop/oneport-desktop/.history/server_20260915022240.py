@@ -721,7 +721,6 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/projects/audit/progress":
             self._send(200, audit.progress((q.get("id", [""])[0]).strip()))
             return
-        
         if u.path == "/api/logout":
             if _ACCOUNT:
                 try:
